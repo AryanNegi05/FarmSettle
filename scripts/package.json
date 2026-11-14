@@ -1,0 +1,11 @@
+{
+  "name": "paratrust-scripts",
+  "version": "1.0.0",
+  "description": "Setup and migration scripts for ParaTrust",
+  "scripts": {
+    "setup-demo": "node setup-firebase-demo-accounts.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}
