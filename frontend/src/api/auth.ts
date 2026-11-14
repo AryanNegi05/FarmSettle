@@ -52,6 +52,19 @@ export interface LoginPayload {
 async function ensureFarmerDoc(user: FirebaseUser, role: string, fullName?: string | null): Promise<void> {
   if (role !== "farmer") return;
   try {
+    // Farmer profile (read by the backend by firebase_uid) — created up front so
+    // saving a farm never fails with "Farmer profile not found".
+    const profRef = doc(db, "farmer_profiles", user.uid);
+    if (!(await getDoc(profRef)).exists()) {
+      await setDoc(profRef, {
+        firebase_uid: user.uid,
+        phone: null,
+        address: null,
+        district: null,
+        state: null,
+        created_at: serverTimestamp(),
+      });
+    }
     await setDoc(doc(db, "farmers", user.uid), {
       farmer_id: user.uid,
       farmer_uid: user.uid,

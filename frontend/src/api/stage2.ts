@@ -128,7 +128,7 @@ export interface PolicyOut {
 }
 
 export interface FarmerSummary {
-  id: number;
+  id: string | number;
   user_id: number;
   full_name: string;
   email: string;
@@ -240,26 +240,18 @@ export async function updatePolicy(id: number, data: PolicyUpdate): Promise<Poli
 
 // Admin / insurer farmer search
 export async function searchFarmers(query?: string): Promise<FarmerSummary[]> {
-  try {
-    const fsFarmers = await getFarmersFromFirestore(query);
-    if (fsFarmers && fsFarmers.length > 0) {
-      return fsFarmers;
-    }
-  } catch (err) {
-    console.warn("Firestore fetch error, falling back to backend:", err);
-  }
-
   const qs = query ? `?search=${encodeURIComponent(query)}` : "";
-  const backendFarmers = await apiFetch<FarmerSummary[]>(`/admin/farmers/${qs}`);
-
-  // Sync to Firestore in background
-  backendFarmers.forEach((f) => {
-    saveFarmerToFirestore(f).catch(() => {});
-  });
-
-  return backendFarmers;
+  try {
+    // Backend is the source of truth: correct profile ids and farm/policy counts.
+    const backendFarmers = await apiFetch<FarmerSummary[]>(`/admin/farmers/${qs}`);
+    backendFarmers.forEach((f) => { saveFarmerToFirestore(f).catch(() => {}); });
+    return backendFarmers;
+  } catch (err) {
+    console.warn("Backend farmer list failed, falling back to Firestore:", err);
+    return getFarmersFromFirestore(query);
+  }
 }
 
-export async function getFarmerDetail(profileId: number): Promise<FarmerDetail> {
+export async function getFarmerDetail(profileId: string | number): Promise<FarmerDetail> {
   return apiFetch<FarmerDetail>(`/admin/farmers/${profileId}`);
 }

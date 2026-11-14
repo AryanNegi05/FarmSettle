@@ -76,14 +76,15 @@ export async function getFarmersFromFirestore(queryStr?: string): Promise<Farmer
   snap.forEach((d) => {
     const data = d.data();
     results.push({
-      id: typeof data.id === "number" ? data.id : parseInt(d.id, 10) || 1,
+      // Ids are Firestore strings (e.g. "ArTG2…"); never coerce them to numbers.
+      id: data.profile_id ?? data.id ?? d.id,
       user_id: Number(data.user_id) || 1,
       full_name: data.full_name || "Farmer",
       email: data.email || "",
       phone: data.phone || null,
       district: data.district || null,
       state: data.state || null,
-      farm_count: Number(data.farm_count) || 0,
+      farm_count: Array.isArray(data.farm_ids) ? data.farm_ids.length : Number(data.farm_count) || 0,
       policy_count: Number(data.policy_count) || 0,
     });
   });

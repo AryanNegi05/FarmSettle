@@ -24,6 +24,20 @@ const activeCards = [
     badge: "Active",
   },
   {
+    icon: "🛰️",
+    title: "Command Centre (3D)",
+    desc: "Live 3D risk map: rainfall circles, sensors, storm simulation and instant payout impact",
+    to: "/insurer/command",
+    badge: "Stage 13",
+  },
+  {
+    icon: "✅",
+    title: "Claims & Payments",
+    desc: "Review claim recommendations, approve or reject, and run simulated payments",
+    to: "/insurer/claims",
+    badge: "Stage 9",
+  },
+  {
     icon: "📡",
     title: "Sensor Health",
     desc: "Detect faulty sensor readings, score sensor trust, and investigate flags",
@@ -35,8 +49,6 @@ const activeCards = [
 const upcomingCards = [
   { icon: "⚠️", title: "Risk Assessment", desc: "Farm-level rainfall risk and uncertainty", badge: "Stage 6" },
   { icon: "🤖", title: "AI Agents", desc: "Investigation workflow and agent traces", badge: "Stage 7" },
-  { icon: "✅", title: "Claims Queue", desc: "Review and approve claim recommendations", badge: "Stage 8" },
-  { icon: "💳", title: "Payments", desc: "Simulated payment processing and reconciliation", badge: "Stage 9" },
 ];
 
 export default function InsurerDashboard() {

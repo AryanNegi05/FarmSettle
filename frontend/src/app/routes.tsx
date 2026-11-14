@@ -15,6 +15,8 @@ import FarmerDetailPage from "../features/insurer/FarmerDetailPage";
 import PolicyListPage from "../features/insurer/PolicyListPage";
 import PolicyFormPage from "../features/insurer/PolicyFormPage";
 import OperationsMapPage from "../features/insurer/OperationsMapPage";
+import ClaimsPage from "../features/insurer/ClaimsPage";
+import CommandCentrePage from "../features/insurer/command/CommandCentrePage";
 import AuditorDashboard from "../features/auditor/AuditorDashboard";
 import AdminDashboard from "../features/admin/AdminDashboard";
 import ProtectedRoute from "../features/shared/ProtectedRoute";
@@ -140,6 +142,23 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={["insurer", "admin", "auditor"]}>
             <OperationsMapPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/insurer/command"
+        element={
+          <ProtectedRoute allowedRoles={["insurer", "admin", "auditor"]}>
+            <CommandCentrePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/insurer/claims"
+        element={
+          <ProtectedRoute allowedRoles={["insurer", "admin", "auditor"]}>
+            <ClaimsPage />
           </ProtectedRoute>
         }
       />

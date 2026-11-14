@@ -62,7 +62,7 @@ export default function FarmerDetailPage() {
 
   useEffect(() => {
     if (!profileId) return;
-    getFarmerDetail(parseInt(profileId, 10))
+    getFarmerDetail(profileId)
       .then(setFarmer)
       .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load farmer"))
       .finally(() => setLoading(false));

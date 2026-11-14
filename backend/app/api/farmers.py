@@ -12,6 +12,7 @@ from app.schemas.stage2 import (
 from app.core.deps import require_role
 from app.services.firestore_service import firestore_service
 from pydantic import BaseModel
+from app.services.command_centre import invalidate_real_farm_cache
 
 router = APIRouter(prefix="/api/farmers", tags=["farmers"])
 
@@ -66,9 +67,11 @@ async def register_farm(
     """Register a new farm for the authenticated farmer."""
     profile = firestore_service.get_farmer_profile_by_uid(current_user.uid)
     if not profile:
-        raise HTTPException(status_code=404, detail="Farmer profile not found")
-    
+        # Safety net for accounts created before profiles were made at sign-up.
+        profile = firestore_service.create_farmer_profile(current_user.uid, {})
+
     farm = firestore_service.create_farm(profile["id"], body.model_dump())
+    invalidate_real_farm_cache()
     
     # Add empty crops list for response
     farm["crops"] = []
@@ -133,6 +136,7 @@ async def update_farm(
     changes = body.model_dump(exclude_unset=True)
     if changes:
         farm = firestore_service.update_farm(farm_id, changes)
+        invalidate_real_farm_cache()
     else:
         farm = firestore_service.get_farm_by_id(farm_id)
     farm["crops"] = firestore_service.list_crops_by_farm(farm_id)
@@ -162,6 +166,7 @@ async def upload_farm_image(
         logging.getLogger("uvicorn.error").exception("Cloudinary upload failed for farm %s", farm_id)
         raise HTTPException(status_code=502, detail=f"Image upload failed: {exc}")
     farm = firestore_service.update_farm(farm_id, {"map_image_url": url})
+    invalidate_real_farm_cache()
     farm["crops"] = firestore_service.list_crops_by_farm(farm_id)
     return farm
 

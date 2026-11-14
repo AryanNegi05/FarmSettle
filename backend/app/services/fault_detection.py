@@ -81,6 +81,27 @@ class SensorClassification:
 
 # ─── Synthetic training data generation ──────────────────────────────────────
 
+def _tick_label(condition: str, t: int, n_ticks: int, stuck_start: int,
+                local_start: int, local_end: int) -> str:
+    """Label a tick by what the sensor is doing *at that tick*.
+
+    A series is only faulty while the fault is active; the ticks before it look like any healthy
+    sensor and must be labelled "normal", otherwise the model learns that ordinary readings can be
+    spikes/stuck/drift.
+    """
+    if condition == "spike":
+        return "spike" if t == n_ticks // 2 else "normal"
+    if condition == "stuck":
+        return "stuck" if t >= stuck_start + 2 else "normal"       # needs 3 identical values to be visible
+    if condition == "drift":
+        return "drift" if t >= n_ticks // 3 + 4 else "normal"      # slope is only visible after a few ticks
+    if condition == "dead":
+        return "dead" if t >= n_ticks // 3 else "normal"
+    if condition == "genuine_localised_cell":
+        return "genuine_localised_cell" if local_start <= t <= local_end else "normal"
+    return "normal"
+
+
 def _generate_series(
     rng: random.Random,
     n_ticks: int,
@@ -121,6 +142,11 @@ def _generate_series(
         elif condition == "dead":
             v = 0.0 if t >= n_ticks // 3 else max(0.0, base + rng.gauss(0, noise_std))
             n_mean = max(0.0, base + rng.gauss(0, noise_std * 0.8))
+        elif condition == "storm_edge":
+            # A healthy gauge near a storm: rain varies in space, so it legitimately disagrees with
+            # its neighbours (ratio anywhere from much lower to much higher) without being faulty.
+            v = max(0.0, base + rng.gauss(0, noise_std))
+            n_mean = max(0.0, base * rng.uniform(0.3, 3.0) + rng.gauss(0, noise_std * 0.8))
         elif condition == "genuine_localised_cell":
             # One sensor sees a real intense local cell.
             # KEY: neighbours show PARTIAL signal (not dry like spike),
@@ -163,6 +189,9 @@ def _generate_series(
         elif condition == "spike" and t == n_ticks // 2:
             satellite_wet  = 0
             storm_proximity = 0
+        elif condition == "storm_edge":
+            satellite_wet  = int(rng.random() < 0.5)
+            storm_proximity = 1
         else:
             satellite_wet  = 0
             storm_proximity = 0
@@ -183,7 +212,7 @@ def _generate_series(
             "tick_ratio":          t / max(n_ticks - 1, 1),
             "satellite_wet_flag":  satellite_wet,
             "storm_proximity":     storm_proximity,
-            "label":               condition,
+            "label":               _tick_label(condition, t, n_ticks, stuck_start, local_start, local_end),
         })
     return rows
 
@@ -199,10 +228,24 @@ def generate_training_data(seed: int = TRAIN_SEED) -> pd.DataFrame:
 
     for condition in FAULT_CLASSES:
         for _ in range(n_series_per_class):
-            base  = rng.uniform(0.5, 15.0)
-            noise = rng.uniform(0.3, 3.0)
+            # ~1/3 of series come from a wet regime (heavy district-wide rain). Without
+            # these the model only ever saw "normal" below 15 mm/hr and misread heavy but
+            # consistent rainfall as a spike.
+            if rng.random() < 0.35:
+                base  = rng.uniform(15.0, 90.0)
+                noise = rng.uniform(0.3, 3.0) * max(1.0, base / 15.0)
+            else:
+                base  = rng.uniform(0.5, 15.0)
+                noise = rng.uniform(0.3, 3.0)
             rows  = _generate_series(rng, n_ticks, base, noise, condition)
             all_rows.extend(rows)
+
+    # Healthy gauges at the edge of a storm (labelled "normal"): teaches the model that
+    # disagreement with neighbours is not a fault when storm evidence is present.
+    for _ in range(n_series_per_class):
+        base  = rng.uniform(0.5, 15.0) if rng.random() < 0.65 else rng.uniform(15.0, 90.0)
+        noise = rng.uniform(0.3, 3.0) * max(1.0, base / 15.0)
+        all_rows.extend(_generate_series(rng, n_ticks, base, noise, "storm_edge"))
 
     df = pd.DataFrame(all_rows)
     return df

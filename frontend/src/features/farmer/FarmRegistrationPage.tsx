@@ -232,6 +232,7 @@ export default function FarmRegistrationPage() {
     map.on("mouseleave", "vertex-dot", () => { if (dragIndex === null) map.getCanvas().style.cursor = ""; });
 
     return () => {
+      setMapReady(false);
       map.remove();
       mapRef.current = null;
     };
@@ -252,8 +253,11 @@ export default function FarmRegistrationPage() {
       }
       lineOrPoly.push({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: ring } });
     }
-    (map.getSource("boundary") as GeoJSONSource).setData({ type: "FeatureCollection", features: lineOrPoly });
-    (map.getSource("vertices") as GeoJSONSource).setData({
+    const boundarySrc = map.getSource("boundary") as GeoJSONSource | undefined;
+    const vertexSrc = map.getSource("vertices") as GeoJSONSource | undefined;
+    if (!boundarySrc || !vertexSrc) return; // map was recreated and its layers are not added yet
+    boundarySrc.setData({ type: "FeatureCollection", features: lineOrPoly });
+    vertexSrc.setData({
       type: "FeatureCollection",
       features: points.map((p, i) => ({
         type: "Feature",

@@ -227,6 +227,93 @@ class FirestoreService:
         return farms
     
     # ═══════════════════════════════════════════════════════════════════════════
+    # CLAIMS  (document id = idempotency key "farm__event__policy")
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def create_claim_once(self, claim_id: str, data: Dict[str, Any]) -> tuple[Dict[str, Any], bool]:
+        """Create a claim; if one already exists for this settlement identity return it.
+
+        Firestore `create()` fails atomically when the document exists, so two
+        simultaneous requests can never produce two claims.
+        """
+        from google.api_core.exceptions import AlreadyExists
+        ref = self.db.collection("claims").document(claim_id)
+        try:
+            ref.create(data)
+            return {**data, "id": claim_id}, True
+        except AlreadyExists:
+            existing = ref.get().to_dict() or {}
+            existing["id"] = claim_id
+            return existing, False
+
+    def get_claim(self, claim_id: str) -> Optional[Dict[str, Any]]:
+        doc = self.db.collection("claims").document(claim_id).get()
+        if not doc.exists:
+            return None
+        claim = doc.to_dict()
+        claim["id"] = doc.id
+        return claim
+
+    def list_claims(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
+        claims = []
+        for doc in self.db.collection("claims").stream():
+            c = doc.to_dict()
+            c["id"] = doc.id
+            if status and c.get("status") != status:
+                continue
+            claims.append(c)
+        claims.sort(key=lambda c: c.get("created_at", ""), reverse=True)
+        return claims
+
+    def list_claims_by_policy(self, policy_id: str) -> List[Dict[str, Any]]:
+        docs = self.db.collection("claims").where(filter=FieldFilter("policy_id", "==", policy_id)).stream()
+        out = []
+        for doc in docs:
+            c = doc.to_dict()
+            c["id"] = doc.id
+            out.append(c)
+        return out
+
+    def update_claim(self, claim_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        ref = self.db.collection("claims").document(claim_id)
+        ref.update(data)
+        claim = ref.get().to_dict()
+        claim["id"] = claim_id
+        return claim
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PAYMENTS  (document id = claim id, so one payment per settlement)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def create_payment_once(self, claim_id: str, data: Dict[str, Any]) -> tuple[Dict[str, Any], bool]:
+        from google.api_core.exceptions import AlreadyExists
+        ref = self.db.collection("payments").document(claim_id)
+        try:
+            ref.create(data)
+            return {**data, "id": claim_id}, True
+        except AlreadyExists:
+            existing = ref.get().to_dict() or {}
+            existing["id"] = claim_id
+            return existing, False
+
+    def get_payment(self, claim_id: str) -> Optional[Dict[str, Any]]:
+        doc = self.db.collection("payments").document(claim_id).get()
+        if not doc.exists:
+            return None
+        p = doc.to_dict()
+        p["id"] = doc.id
+        return p
+
+    def list_payments(self) -> List[Dict[str, Any]]:
+        out = []
+        for doc in self.db.collection("payments").stream():
+            p = doc.to_dict()
+            p["id"] = doc.id
+            out.append(p)
+        out.sort(key=lambda p: p.get("created_at", ""), reverse=True)
+        return out
+
+    # ═══════════════════════════════════════════════════════════════════════════
     # CROPS
     # ═══════════════════════════════════════════════════════════════════════════
     
