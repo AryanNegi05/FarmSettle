@@ -16,10 +16,13 @@ import maplibregl, { GeoJSONSource, Map } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useAuth } from "../../../hooks/useAuth";
 import {
-  CCFarm, CCPreset, CCResult, CCSensor, CCSeries, CCSummary, FaultType, evaluateCommand, getFarmSeries, getPresets,
+  CCFarm, CCPreset, CCResult, CCSensor, CCSeries, CCSummary, FaultType, evaluateCommand, getFarmSeries, getPresets, getSensorForensics, SensorForensics,
 } from "../../../api/command";
 import { EXAMPLE_FARMLAND_COORDS, EXAMPLE_FARMLAND_URL } from "../../map/exampleFarmland";
 import ControlsPanel, { Controls } from "./ControlsPanel";
+import AgentPanel from "./AgentPanel";
+import SensorPanel from "./SensorPanel";
+import { AgentRun, runAgents } from "../../../api/agents";
 import FarmPanel from "./FarmPanel";
 import {
   RISK_COLOUR, RISK_LABEL, circleFeatures, evidenceLinks, farmBounds, farmFeatures, inr, landFeature,
@@ -73,6 +76,14 @@ export default function CommandCentrePage() {
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [series, setSeries] = useState<CCSeries | null>(null);
+  const [sensorOpen, setSensorOpen] = useState(false);
+  const [forensics, setForensics] = useState<SensorForensics | null>(null);
+  const [forensicsBusy, setForensicsBusy] = useState(false);
+  const [forensicsError, setForensicsError] = useState<string | null>(null);
+  const [agentOpen, setAgentOpen] = useState(false);
+  const [agentRun, setAgentRun] = useState<AgentRun | null>(null);
+  const [agentBusy, setAgentBusy] = useState(false);
+  const [agentError, setAgentError] = useState<string | null>(null);
 
   const [selectedFarmId, setSelectedFarmId] = useState<string | null>(null);
   const [selectedSensorId, setSelectedSensorId] = useState<string | null>(null);
@@ -134,6 +145,30 @@ export default function CommandCentrePage() {
       storm: controls.storm ? { ...controls.storm, peak_mm_hr: Math.round(controls.storm.peak_mm_hr * m * 10) / 10 } : null,
     };
   }, [baseRequest, controls.district, controls.storm, tl]);
+
+  // The four agents investigate whatever storm the sliders/presets are currently showing.
+  function investigate() {
+    setAgentOpen(true); setAgentBusy(true); setAgentError(null);
+    runAgents(request)
+      .then(setAgentRun)
+      .catch((e) => setAgentError(e instanceof Error ? e.message : "Investigation failed"))
+      .finally(() => setAgentBusy(false));
+  }
+
+  // Sensor Forensics: investigate the clicked sensor under the current sliders (debounced).
+  const forensicsReq = useRef(0);
+  useEffect(() => {
+    if (!sensorOpen || !selectedSensorId) return;
+    const my = ++forensicsReq.current;
+    setForensicsBusy(true);
+    const t = window.setTimeout(() => {
+      getSensorForensics({ ...request, sensor_id: selectedSensorId })
+        .then((d) => { if (my === forensicsReq.current) { setForensics(d); setForensicsError(null); } })
+        .catch((e) => { if (my === forensicsReq.current) setForensicsError(e instanceof Error ? e.message : "Investigation failed"); })
+        .finally(() => { if (my === forensicsReq.current) setForensicsBusy(false); });
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [sensorOpen, selectedSensorId, request]);
 
   useEffect(() => {
     const my = ++reqId.current;
@@ -267,7 +302,7 @@ export default function CommandCentrePage() {
       map.on("click", "sensors-circle", (e) => {
         if (placingRef.current) return;
         const id = e.features?.[0]?.properties?.id as string | undefined;
-        if (id) setSelectedSensorId(id);
+        if (id) { setSelectedSensorId(id); setSensorOpen(true); }
       });
       map.on("mousemove", "sensors-circle", (e) => {
         map.getCanvas().style.cursor = "pointer";
@@ -425,7 +460,15 @@ export default function CommandCentrePage() {
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-200 border border-amber-500/30">Simulated weather & sensors</span>
           {evaluating && <span className="text-[11px] text-cyan-300 animate-pulse">recalculating…</span>}
         </div>
+        <div className="flex items-center gap-3">
+          {user?.role !== "auditor" && (
+            <button onClick={investigate} disabled={agentBusy || !result}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-50">
+              {agentBusy ? "Investigating…" : "🤖 Run agent investigation"}
+            </button>
+          )}
         {result && <span className="text-[11px] text-gray-500 hidden md:block">{result.farms.length} farms · {result.sensors.length} sensors · {result.elapsed_ms} ms</span>}
+        </div>
       </div>
 
       <div className="flex flex-1 min-h-0 flex-col lg:flex-row">
@@ -465,7 +508,7 @@ export default function CommandCentrePage() {
           </div>
 
           {/* View controls */}
-          <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1.5">
+          <div className="absolute top-3 right-3 z-30 flex flex-col items-end gap-1.5">
             <div className="flex gap-1.5">
               <button onClick={() => setIs3D(false)} className={`text-xs px-3 py-1.5 rounded-lg border backdrop-blur-md ${!is3D ? "bg-cyan-500 text-slate-900 border-cyan-400 font-semibold" : "bg-slate-900/80 text-gray-200 border-white/10"}`}>2D</button>
               <button onClick={() => setIs3D(true)} className={`text-xs px-3 py-1.5 rounded-lg border backdrop-blur-md ${is3D ? "bg-cyan-500 text-slate-900 border-cyan-400 font-semibold" : "bg-slate-900/80 text-gray-200 border-white/10"}`}>3D</button>
@@ -501,6 +544,12 @@ export default function CommandCentrePage() {
             <p className="text-gray-500">Unmarked ground is land no farmer has registered yet.</p>
           </div>
 
+          {sensorOpen && selectedSensorId && (
+            <SensorPanel data={forensics && forensics.sensor.id === selectedSensorId ? forensics : null} loading={forensicsBusy} error={forensicsError}
+              onClose={() => setSensorOpen(false)} onSelectSensor={(id) => { setSelectedSensorId(id); }}
+              onSelectFarm={(id) => setSelectedFarmId(id)} />
+          )}
+          {agentOpen && <AgentPanel run={agentRun} running={agentBusy} error={agentError} onClose={() => setAgentOpen(false)} />}
           {placingStorm && <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-lg bg-amber-500/90 text-slate-900 text-xs font-semibold">Click the map to place the storm centre</div>}
           {error && <div className="absolute bottom-24 right-3 z-10 max-w-xs rounded-lg bg-red-900/80 border border-red-700 text-red-200 text-xs px-3 py-2">{error}</div>}
           {result && farms.length === 0 && (

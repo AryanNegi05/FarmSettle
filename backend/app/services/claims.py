@@ -35,11 +35,13 @@ TRANSITIONS: dict[str, set[str]] = {
     "RECOMMENDED": {"AWAITING_APPROVAL", "ON_HOLD", "REJECTED"},
     "AWAITING_APPROVAL": {"APPROVED", "ON_HOLD", "REJECTED"},
     "ON_HOLD": {"AWAITING_APPROVAL", "APPROVED", "REJECTED"},
-    "APPROVED": {"PAYMENT_PENDING", "ON_HOLD"},
+    "APPROVED": {"PAYMENT_PENDING", "ON_HOLD", "DISPUTED"},
     "PAYMENT_PENDING": {"PAID", "ON_HOLD"},
     "PAID": {"DISPUTED"},
     "REJECTED": {"DISPUTED"},
-    "DISPUTED": {"AWAITING_APPROVAL", "REJECTED"},
+    # A dispute returns to where it came from (dismissed) or to review (upheld); only the dispute
+    # resolution endpoint may use these moves, never the plain decision endpoint.
+    "DISPUTED": {"AWAITING_APPROVAL", "REJECTED", "APPROVED", "PAID"},
 }
 
 
@@ -243,6 +245,21 @@ def calculate_claim(
     calc.requires_human_approval = calc.outcome in ("PAY", "ADVANCE", "HOLD")
     calc.reasons = reasons
     return calc
+
+
+COMMITTED_STATUSES = {"APPROVED", "PAYMENT_PENDING", "PAID"}
+
+
+def effective_status(claim: dict[str, Any]) -> str:
+    """Money status: a claim under dispute still counts as whatever it was before the dispute."""
+    if claim.get("status") == "DISPUTED":
+        return claim.get("pre_dispute_status") or "DISPUTED"
+    return claim.get("status", "")
+
+
+def is_committed(claim: dict[str, Any]) -> bool:
+    """True when this claim's amount counts against the policy cap (approved, being paid, or paid)."""
+    return effective_status(claim) in COMMITTED_STATUSES
 
 
 def can_transition(current: str, new: str) -> bool:

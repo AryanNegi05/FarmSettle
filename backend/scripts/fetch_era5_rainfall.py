@@ -21,8 +21,8 @@ Requires
 --------
   pip install cdsapi xarray scipy netCDF4
 
-CDS credentials are read from ~/.cdsapirc (auto-created by this script on
-first run from the env-vars below, so you don't need to manually create it).
+CDS credentials are read from the CDS_API_KEY environment variable (the script
+creates ~/.cdsapirc from it on first run if that file does not exist).
 """
 
 import json
@@ -30,9 +30,10 @@ import os
 import pathlib
 import sys
 
-# ── CDS credentials (injected here so team doesn't need to manage ~/.cdsapirc) ─
-CDS_URL = "https://cds.climate.copernicus.eu/api"
-CDS_KEY = "7d7d576d-a418-4edf-8eae-892440b4a1ef"
+# ── CDS credentials: read from the environment, never hardcode ──────────────────
+#   export CDS_API_KEY="<your key from cds.climate.copernicus.eu profile>"
+CDS_URL = os.environ.get("CDS_API_URL", "https://cds.climate.copernicus.eu/api")
+CDS_KEY = os.environ.get("CDS_API_KEY", "")
 
 # ── Target event: Vidarbha / Nagpur region, July 2022 excess rainfall event ──
 EVENT_YEAR  = "2022"
@@ -53,6 +54,8 @@ def write_cdsapirc():
     """Write ~/.cdsapirc so cdsapi can authenticate."""
     rc = pathlib.Path.home() / ".cdsapirc"
     if not rc.exists():
+        if not CDS_KEY:
+            sys.exit("[fetch_era5] Set CDS_API_KEY (or create ~/.cdsapirc) before downloading.")
         rc.write_text(f"url: {CDS_URL}\nkey: {CDS_KEY}\n")
         print(f"[fetch_era5] Created {rc}")
     else:
@@ -123,11 +126,27 @@ def process_to_json():
     lats = tp[lat_dim].values.tolist()
     lons = tp[lon_dim].values.tolist()
 
+    # ERA5-Land `tp` is ACCUMULATED since 00 UTC, not an hourly rate:
+    #   stamp 01..23 UTC → rain since 00 UTC of that day
+    #   stamp 00 UTC     → the whole previous day (24 h total)
+    # Convert to the hourly amount for the hour ENDING at each stamp.
+    # The first stamp has no earlier value to difference against; if it is 00 UTC it
+    # holds the previous day's total, so its hourly amount is unknown and set to 0.
+    import pandas as pd  # noqa: PLC0415
+
     ticks = {}
+    prev_cum = None
     for tick_idx, t in enumerate(tp[time_dim].values):
-        slice_ = tp.sel({time_dim: t})
-        vals_m_hr = slice_.values  # shape: (lat, lon)
-        vals_mm_hr = vals_m_hr * 1000.0  # m → mm
+        cum_mm = tp.sel({time_dim: t}).values * 1000.0  # m → mm, shape (lat, lon)
+        hour = pd.Timestamp(t).hour
+        if hour == 1:
+            vals_mm_hr = cum_mm                       # accumulation restarted at 00 UTC
+        elif prev_cum is None:
+            vals_mm_hr = np.zeros_like(cum_mm) if hour == 0 else cum_mm
+        else:
+            vals_mm_hr = cum_mm - prev_cum            # incl. 00 UTC: day total − 23 h cumulative
+        vals_mm_hr = np.clip(vals_mm_hr, 0.0, None)   # drop float-noise negatives
+        prev_cum = cum_mm
 
         # Flatten to list of [lon, lat, mm_hr] for spatial use
         grid = []

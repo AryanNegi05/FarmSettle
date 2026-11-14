@@ -12,11 +12,17 @@ export interface ClaimCalculation {
 
 export interface HistoryEntry { at: string; by: string; from: string | null; to: string; reason: string }
 
+export interface DisputeRecord {
+  id: number; category: string; reason: string; status: "open" | "upheld" | "dismissed"; created_at: string;
+  resolved_at: string | null; resolution_note: string | null;
+}
+
 export interface Claim {
   id: string; policy_id: string; farm_id: string; farmer_profile_id?: string; event_id: string;
   status: string; outcome: string; recommended_amount: number; calculation: ClaimCalculation;
   decision_reason: string | null; history: HistoryEntry[]; created_at: string;
   transaction_ref?: string; paid_at?: string;
+  disputes?: DisputeRecord[]; pre_dispute_status?: string | null; supplementary?: boolean; parent_claim_id?: string;
 }
 
 export interface Payment {
@@ -28,7 +34,7 @@ export interface Payment {
 export interface ClaimStats {
   total_claims: number; under_investigation: number; awaiting_approval: number; on_hold: number;
   approved: number; paid: number; rejected: number; amount_awaiting_approval: number;
-  amount_approved_unpaid: number; amount_paid: number; approved_exposure: number;
+  amount_approved_unpaid: number; amount_paid: number; approved_exposure: number; disputed?: number;
 }
 
 export interface Reconciliation {
@@ -48,8 +54,10 @@ export const listClaims = (status?: string) =>
   apiFetch<Claim[]>(`/claims${status ? `?status=${status}` : ""}`);
 export const getClaimStats = () => apiFetch<ClaimStats>("/claims/stats/summary");
 export const getReconciliation = () => apiFetch<Reconciliation>("/claims/reconciliation/report");
-export const decideClaim = (id: string, action: "approve" | "hold" | "reject" | "investigate", reason: string) =>
+export const decideClaim = (id: string, action: "approve" | "hold" | "reject" | "investigate" | "resume", reason: string) =>
   apiFetch<Claim>(`/claims/${id}/decision`, { method: "POST", body: { action, reason } });
 export const payClaim = (id: string) =>
   apiFetch<{ claim: Claim; payment: Payment; created: boolean }>(`/claims/${id}/pay`, { method: "POST" });
 export const getClaim = (id: string) => apiFetch<Claim>(`/claims/${id}`);
+export const resolveDispute = (id: string, body: { outcome: "uphold" | "dismiss"; note: string; amount?: number }) =>
+  apiFetch<{ claim: Claim; supplementary_claim: Claim | null }>(`/claims/${id}/dispute/resolve`, { method: "POST", body });

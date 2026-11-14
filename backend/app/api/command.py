@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from app.models.user import UserRole
 from app.core.deps import require_role
 from app.services import command_centre as cc
+from app.services import sensor_forensics as forensics
 
 router = APIRouter(prefix="/api/command", tags=["command-centre"])
 
@@ -71,3 +72,19 @@ def farm_series(body: SeriesIn, current_user=Depends(require_role(*READ_ROLES)))
     if not any(f["farm_id"] == body.farm_id for f in farms):
         raise HTTPException(status_code=404, detail="Farm not found on the shared land")
     return cc.farm_series(_controls(body), body.farm_id, body.steps, farms=farms)
+
+
+class ForensicsIn(EvaluateIn):
+    sensor_id: str
+
+
+@router.post("/sensor-forensics")
+def sensor_forensics(body: ForensicsIn, current_user=Depends(require_role(*READ_ROLES))):
+    """Explainable investigation of one simulated sensor under the current controls."""
+    controls = _controls(body)
+    farms = cc._collect_farms()
+    evaluation = cc.evaluate(controls, farms=[dict(f) for f in farms])
+    try:
+        return forensics.investigate(controls, body.sensor_id, evaluation, farms=[dict(f) for f in farms])
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Sensor not found for these controls")

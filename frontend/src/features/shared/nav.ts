@@ -20,6 +20,7 @@ export function navFor(role?: UserRole | null): NavItem[] {
       return [
         { to: "/farmer", label: "Dashboard", end: true },
         { to: "/farmer/farms", label: "My Farms" },
+        { to: "/farmer/claims", label: "Claims" },
         { to: "/farmer/policy", label: "My Policy" },
         { to: "/farmer/map", label: "Farm Map" },
         { to: "/farmer/bank", label: "Bank" },
@@ -33,6 +34,8 @@ export function navFor(role?: UserRole | null): NavItem[] {
         { to: "/insurer/policies", label: "Policies" },
         { to: "/insurer/claims", label: "Claims" },
         { to: "/insurer/command", label: "Command Centre" },
+        { to: "/insurer/basis-risk", label: "Basis Risk" },
+        { to: "/insurer/replay", label: "Replay" },
         ...(role === "admin" ? [{ to: "/admin", label: "Admin" }] : []),
       ];
     case "auditor":
@@ -42,6 +45,8 @@ export function navFor(role?: UserRole | null): NavItem[] {
         { to: "/insurer/policies", label: "Policies" },
         { to: "/insurer/claims", label: "Claims" },
         { to: "/insurer/command", label: "Command Centre" },
+        { to: "/insurer/basis-risk", label: "Basis Risk" },
+        { to: "/insurer/replay", label: "Replay" },
       ];
     default:
       return [];
@@ -52,7 +57,7 @@ const PREFIXES: Record<UserRole, string[]> = {
   farmer: ["/farmer"],
   insurer: ["/insurer"],
   admin: ["/insurer", "/admin", "/auditor"],
-  auditor: ["/auditor", "/insurer/farmers", "/insurer/policies", "/insurer/map", "/insurer/claims", "/insurer/command"],
+  auditor: ["/auditor", "/insurer/farmers", "/insurer/policies", "/insurer/map", "/insurer/claims", "/insurer/command", "/insurer/basis-risk", "/insurer/replay"],
 };
 
 /** True if this role may open the path, so a post-login redirect never lands on "Access Denied". */

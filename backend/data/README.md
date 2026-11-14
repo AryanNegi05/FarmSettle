@@ -22,10 +22,14 @@ python3 scripts/fetch_era5_rainfall.py
 
 ## ERA5 Event
 
-**Aug 18–20, 2021 — Uttar Pradesh excess rainfall event**
-- District: Varanasi / Kashi-Ganga demo area
+**Jul 12–14, 2022 — Vidarbha (Nagpur/Wardha) excess rainfall event**
+- Bounding box: 78.95–79.23 E, 21.02–21.27 N
 - Variable: `total_precipitation` (ERA5-Land, hourly)
+- ERA5-Land `tp` is *accumulated since 00 UTC*; `fetch_era5_rainfall.py` converts it
+  to hourly mm. The 00 UTC stamp holds the previous day's 24 h total, so tick 0 (no
+  earlier data) is set to 0.
 - 72 ticks (3 days × 24 hours)
+- Real-storm claim validation: `data/validation/` and `tests/test_real_storm_backtest.py`
 
 ## Fallback
 
@@ -45,8 +49,16 @@ Pass them via `satellite_wet_ids` and `storm_cell_ids` to `classify_readings()`.
 
 ## CDS Credentials
 
+Set your key in the environment (get it from your CDS profile page); it is never stored in the repo:
+
 ```
-url: https://cds.climate.copernicus.eu/api
-key: 7d7d576d-a418-4edf-8eae-892440b4a1ef
+export CDS_API_KEY="<your key>"
 ```
-Credentials are embedded in `fetch_era5_rainfall.py` — no manual setup needed.
+
+The script writes `~/.cdsapirc` from it on first run. Not needed if the `.nc` file is already present.
+
+## Real-data validation
+
+- `data/validation/imd_gadchiroli_2026_08.json`, `imd_nagpur_2026_09.json` — IMD district daily rainfall
+- `data/validation/vidarbha_2022_07.json` — ERA5-Land reanalysis (not gauge data)
+- Tests: `tests/test_imd_backtest.py`, `tests/test_real_storm_backtest.py`

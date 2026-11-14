@@ -1,108 +1,158 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { BankAccountOut, FarmOut, PolicyOut, getBankAccount, getMyFarms, listPolicies } from "../../api/stage2";
+import { FarmerClaimItem, getMyClaims } from "../../api/farmerClaims";
+import { useI18n } from "../../i18n";
+import { StatusPill, Tracker, inr } from "./claimUi";
+import LossReportCard from "./LossReportCard";
 
-const activeCards = [
-  {
-    icon: "👤",
-    title: "My Profile",
-    desc: "Update your personal and contact details",
-    to: "/farmer/profile",
-    badge: "Active",
-  },
-  {
-    icon: "🌾",
-    title: "My Farms",
-    desc: "Register farms, coordinates, and crop details",
-    to: "/farmer/farms",
-    badge: "Active",
-  },
-  {
-    icon: "📋",
-    title: "My Policy",
-    desc: "Insurance coverage, sum insured & trigger conditions",
-    to: "/farmer/policy",
-    badge: "Active",
-  },
-  {
-    icon: "🏦",
-    title: "Bank Account",
-    desc: "Manage payout account details and verification",
-    to: "/farmer/bank",
-    badge: "Active",
-  },
-  {
-    icon: "🗺️",
-    title: "Satellite Map",
-    desc: "Satellite view centred on your registered farm",
-    to: "/farmer/map",
-    badge: "Active",
-  },
-];
+const CLOSED = ["PAID", "REJECTED"];
 
-const upcomingCards = [
-  { icon: "💰", title: "Claims", desc: "Claim status, evidence & payment history", badge: "Stage 8" },
-];
+function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
+  return (
+    <div className="bg-navy-800 border border-navy-700 rounded-xl p-4">
+      <p className="text-[11px] uppercase tracking-wider text-gray-400">{label}</p>
+      <p className={`text-2xl font-bold mt-0.5 ${tone ?? "text-white"}`}>{value}</p>
+      {sub && <p className="text-xs text-gray-500">{sub}</p>}
+    </div>
+  );
+}
 
 export default function FarmerDashboard() {
   const { user } = useAuth();
+  const { t, date } = useI18n();
+  const [claims, setClaims] = useState<FarmerClaimItem[]>([]);
+  const [policies, setPolicies] = useState<PolicyOut[]>([]);
+  const [farms, setFarms] = useState<FarmOut[]>([]);
+  const [bank, setBank] = useState<BankAccountOut | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    Promise.allSettled([getMyClaims(), listPolicies(), getMyFarms(), getBankAccount()]).then(([c, p, f, b]) => {
+      if (c.status === "fulfilled") setClaims(c.value);
+      if (p.status === "fulfilled") setPolicies(p.value);
+      if (f.status === "fulfilled") setFarms(f.value);
+      if (b.status === "fulfilled") setBank(b.value);
+      setReady(true);
+    });
+  }, []);
+
+  const active = claims.filter((c) => !CLOSED.includes(c.status.code));
+  const past = claims.filter((c) => CLOSED.includes(c.status.code));
+  const paid = claims.filter((c) => c.status.code === "PAID").reduce((s, c) => s + c.amount, 0);
+  const pending = active.reduce((s, c) => s + c.amount, 0);
+  const activePolicies = policies.filter((p) => p.status === "active");
+
+  // Things only the farmer can fix, most important first.
+  const todo: { text: string; to: string; cta: string }[] = [];
+  if (ready && farms.length === 0) todo.push({ text: t("todo.noFarm"), to: "/farmer/farms/new", cta: t("todo.addFarm") });
+  if (ready && farms.length > 0 && policies.length === 0) todo.push({ text: t("todo.noPolicy"), to: "/farmer/farms", cta: t("todo.myFarms") });
+  if (ready && !bank) todo.push({ text: active.some((c) => c.amount > 0) ? t("todo.bankWithClaim") : t("todo.bankNone"), to: "/farmer/bank", cta: t("todo.addBank") });
+  if (bank && bank.verification_status !== "verified") todo.push({ text: t("todo.bankStatus", { status: t(`bank.${bank.verification_status}`) }), to: "/farmer/bank", cta: t("todo.checkBank") });
+
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-7">
       <div>
-        <h1 className="text-3xl font-bold text-white">
-          Welcome, {user?.full_name ?? "Farmer"} 🌾
-        </h1>
-        <p className="text-gray-400 mt-1">Your ParaTrust farmer dashboard</p>
+        <h1 className="text-3xl font-bold text-white">{t("dash.welcome", { name: user?.full_name ?? "" })}</h1>
+        <p className="text-gray-400 mt-1">{t("dash.subtitle")}</p>
       </div>
 
-      {/* Active Stage 2 Features */}
-      <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-brand-blue mb-4">
-          Farm & Policy Management
-        </h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-5">
-          {activeCards.map((c) => (
-            <Link
-              key={c.title}
-              to={c.to}
-              className="bg-navy-800 border border-navy-700 hover:border-brand-blue rounded-xl p-5 space-y-2 transition block group"
-            >
-              <div className="flex items-start justify-between">
-                <span className="text-3xl group-hover:scale-110 transition-transform">{c.icon}</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/50 text-green-300 border border-green-700">
-                  {c.badge}
-                </span>
-              </div>
-              <h3 className="font-semibold text-white group-hover:text-brand-blue transition-colors">
-                {c.title}
-              </h3>
-              <p className="text-sm text-gray-400">{c.desc}</p>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Upcoming Stages */}
-      <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-4">
-          Upcoming Capabilities
-        </h2>
-        <div className="grid sm:grid-cols-3 gap-5">
-          {upcomingCards.map((c) => (
-            <div
-              key={c.title}
-              className="bg-navy-800/50 border border-navy-700/50 rounded-xl p-5 space-y-2 opacity-60"
-            >
-              <div className="flex items-start justify-between">
-                <span className="text-3xl">{c.icon}</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-navy-700 text-gray-400">
-                  {c.badge}
-                </span>
-              </div>
-              <h3 className="font-semibold text-gray-300">{c.title}</h3>
-              <p className="text-sm text-gray-500">{c.desc}</p>
+      {todo.length > 0 && (
+        <div className="space-y-2">
+          {todo.map((t) => (
+            <div key={t.text} className="flex items-center justify-between gap-3 flex-wrap bg-amber-900/20 border border-amber-800 rounded-xl px-4 py-3">
+              <p className="text-sm text-amber-100">⚑ {t.text}</p>
+              <Link to={t.to} className="text-xs font-semibold bg-amber-500 text-navy px-3 py-1.5 rounded-lg">{t.cta}</Link>
             </div>
           ))}
         </div>
+      )}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Stat label={t("stat.activeClaims")} value={String(active.length)} sub={pending > 0 ? t("stat.inProgress", { amount: inr(pending) }) : t("stat.nothingWaiting")} tone={active.length ? "text-cyan-300" : undefined} />
+        <Stat label={t("stat.paidSoFar")} value={inr(paid)} sub={t("stat.claimsCount", { n: claims.filter((c) => c.status.code === "PAID").length })} tone={paid ? "text-green-300" : undefined} />
+        <Stat label={t("stat.activePolicies")} value={String(activePolicies.length)} sub={t("stat.ofN", { n: policies.length })} />
+        <Stat label={t("stat.farms")} value={String(farms.length)} sub={farms.reduce((s, f) => s + (f.area_hectares ?? 0), 0).toFixed(1) + " ha"} />
+      </div>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white">{t("dash.activeClaims")}</h2>
+          <Link to="/farmer/claims" className="text-xs text-brand-blue hover:underline">{t("dash.allClaims")}</Link>
+        </div>
+        {!ready && <p className="text-gray-400 text-sm">{t("common.loading")}</p>}
+        {ready && active.length === 0 && (
+          <div className="bg-navy-800 border border-navy-700 rounded-xl p-6 text-sm text-gray-400">
+            {t("dash.noActive")}
+          </div>
+        )}
+        {active.map((c) => (
+          <Link key={c.id} to={`/farmer/claims/${encodeURIComponent(c.id)}`}
+            className="block bg-navy-800 border border-navy-700 hover:border-brand-blue rounded-xl p-5 space-y-3 transition">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <p className="text-white font-semibold">{c.amount > 0 ? inr(c.amount) : t("claim.noPayout")} <span className="text-sm font-normal text-gray-400">· {c.farm_name ?? t("claim.yourFarm")}</span></p>
+                <p className="text-xs text-gray-500">{c.policy_number} · {date(c.created_at)}</p>
+              </div>
+              <StatusPill status={c.status} />
+            </div>
+            <Tracker status={c.status} />
+            <div className="flex justify-between gap-3 flex-wrap text-xs">
+              <span className="text-gray-300">{t(`status.${c.status.code}.next`)}</span>
+              <span className="text-brand-blue">{t("claim.whyAmount")}</span>
+            </div>
+          </Link>
+        ))}
+      </section>
+
+      {past.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold text-white">{t("dash.pastClaims")}</h2>
+          <div className="bg-navy-800 border border-navy-700 rounded-xl divide-y divide-navy-700/60">
+            {past.map((c) => (
+              <Link key={c.id} to={`/farmer/claims/${encodeURIComponent(c.id)}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-navy-700/30">
+                <div>
+                  <p className="text-sm text-white">{c.amount > 0 ? inr(c.amount) : t("claim.noPayout")} · {c.farm_name ?? t("claim.yourFarm")}</p>
+                  <p className="text-xs text-gray-500">{c.paid_at ? t("dash.paidOn", { date: date(c.paid_at) }) : date(c.created_at)}</p>
+                </div>
+                <StatusPill status={c.status} />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <LossReportCard farms={farms} />
+
+      <div className="grid md:grid-cols-2 gap-5">
+        <section className="space-y-2">
+          <div className="flex items-center justify-between"><h2 className="text-lg font-semibold text-white">{t("dash.myPolicies")}</h2><Link to="/farmer/policy" className="text-xs text-brand-blue hover:underline">{t("dash.details")}</Link></div>
+          {ready && policies.length === 0 && <p className="text-sm text-gray-400 bg-navy-800 border border-navy-700 rounded-xl p-4">{t("dash.noPolicyIssued")}</p>}
+          {policies.map((p) => (
+            <div key={p.id} className="bg-navy-800 border border-navy-700 rounded-xl p-4 text-sm space-y-1">
+              <div className="flex justify-between"><span className="font-mono text-brand-blue">{p.policy_number}</span><span className="text-xs text-gray-400">{t(`policy.${p.status}`)}</span></div>
+              <p className="text-gray-300">{t("dash.policyLine", { farm: p.farm_name ?? "", amount: inr(p.sum_insured) })}</p>
+              <p className="text-xs text-gray-500">{t("dash.paysWhen", { trigger: p.rainfall_trigger_mm ?? "?", start: p.coverage_start, end: p.coverage_end })}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold text-white">{t("dash.payoutAccount")}</h2>
+          {bank ? (
+            <div className="bg-navy-800 border border-navy-700 rounded-xl p-4 text-sm space-y-1">
+              <p className="text-white">{bank.bank_name ?? "Bank"} · {bank.masked_account_number}</p>
+              <p className="text-xs text-gray-400">{bank.account_holder_name}</p>
+              <p className={`text-xs ${bank.verification_status === "verified" ? "text-green-300" : "text-amber-200"}`}>{t(`bank.${bank.verification_status}`)}</p>
+            </div>
+          ) : <Link to="/farmer/bank" className="block text-sm text-amber-100 bg-navy-800 border border-amber-800 rounded-xl p-4">{t("dash.noAccount")}</Link>}
+          <div className="grid grid-cols-2 gap-2 pt-1 text-sm">
+            {[[t("link.farms"), "/farmer/farms"], [t("link.map"), "/farmer/map"], [t("link.profile"), "/farmer/profile"], [t("link.bank"), "/farmer/bank"]].map(([l, to]) => (
+              <Link key={to} to={to} className="bg-navy-800 border border-navy-700 hover:border-brand-blue rounded-lg px-3 py-2 text-gray-200">{l}</Link>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );

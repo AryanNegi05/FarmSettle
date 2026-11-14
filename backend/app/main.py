@@ -12,6 +12,10 @@ from app.api.auth import router as auth_router
 from app.api.farmers import router as farmers_router
 from app.api.claims import router as claims_router
 from app.api.command import router as command_router
+from app.api.backtest import router as backtest_router
+from app.api.agents import router as agents_router
+from app.api.my_claims import router as my_claims_router
+from app.api.basis_risk import router as basis_risk_router
 from app.api.policies import router as policies_router, admin_router
 from app.api.geo import router as geo_router
 from app.api.simulation import router as simulation_router
@@ -38,6 +42,10 @@ app.include_router(sensors_router)
 app.include_router(risk_router)
 app.include_router(claims_router)
 app.include_router(command_router)
+app.include_router(backtest_router)
+app.include_router(agents_router)
+app.include_router(my_claims_router)
+app.include_router(basis_risk_router)
 
 @app.get("/api/health")
 def health() -> dict:

@@ -1,11 +1,19 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { homeFor, navFor } from "./nav";
+import { useI18n } from "../../i18n";
+import LanguageSwitcher from "./LanguageSwitcher";
+
+const FARMER_NAV: Record<string, string> = {
+  "/farmer": "nav.dashboard", "/farmer/farms": "nav.farms", "/farmer/claims": "nav.claims", "/farmer/policy": "nav.policy",
+  "/farmer/map": "nav.map", "/farmer/bank": "nav.bank", "/farmer/profile": "nav.profile",
+};
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const items = navFor(user?.role);
+  const { t } = useI18n();
+  const items = navFor(user?.role).map((i) => (user?.role === "farmer" && FARMER_NAV[i.to] ? { ...i, label: t(FARMER_NAV[i.to]) } : i));
 
   function handleLogout() {
     logout();
@@ -33,6 +41,7 @@ export default function Navbar() {
         )}
 
         <div className="flex items-center gap-3 text-sm shrink-0">
+          {user?.role === "farmer" && <LanguageSwitcher />}
           {user ? (
             <>
               <span className="text-gray-400 hidden sm:inline">

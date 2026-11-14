@@ -12,6 +12,7 @@ from app.models.user import UserRole
 from app.core.deps import require_role
 from app.services import claims as engine
 from app.services import payments as pay
+from app.services import disputes as disp
 from app.services.firestore_service import firestore_service
 
 router = APIRouter(prefix="/api/claims", tags=["claims"])
@@ -20,7 +21,7 @@ READ_ROLES = (UserRole.insurer, UserRole.admin, UserRole.auditor)
 DECIDE_ROLES = (UserRole.insurer, UserRole.admin)
 
 # Statuses whose recommended amount counts as already committed against the policy cap.
-COMMITTED = {"APPROVED", "PAYMENT_PENDING", "PAID"}
+COMMITTED = {"APPROVED", "PAYMENT_PENDING", "PAID"}   # kept for imports; use engine.is_committed
 
 
 class ClaimRequest(BaseModel):
@@ -35,7 +36,7 @@ class ClaimRequest(BaseModel):
 
 
 class DecisionRequest(BaseModel):
-    action: Literal["approve", "hold", "reject", "investigate"]
+    action: Literal["approve", "hold", "reject", "investigate", "resume"]
     reason: str = Field(min_length=3, max_length=500)
 
 
@@ -53,7 +54,7 @@ async def calculate(body: ClaimRequest, current_user=Depends(require_role(*DECID
     paid = sum(
         float(c.get("recommended_amount") or 0)
         for c in firestore_service.list_claims_by_policy(policy["id"])
-        if c.get("status") in COMMITTED
+        if engine.is_committed(c)
     )
     calc = engine.calculate_claim(
         policy,
@@ -122,7 +123,14 @@ async def pay_claim(claim_id: str, current_user=Depends(require_role(*DECIDE_ROL
     if claim["status"] == "PAID":   # idempotent replay: return the original payment
         return {"claim": claim, "payment": firestore_service.get_payment(claim_id), "created": False}
 
-    bank = firestore_service.get_bank_account_by_profile(claim.get("farmer_profile_id") or "")
+    profile_id = claim.get("farmer_profile_id")
+    if not profile_id:                       # older/agent-queued claims: the policy knows the farmer
+        pol = firestore_service.get_policy_by_id(claim.get("policy_id") or "")
+        profile_id = (pol or {}).get("farmer_profile_id")
+        if profile_id:
+            claim["farmer_profile_id"] = profile_id
+            firestore_service.update_claim(claim_id, {"farmer_profile_id": profile_id})
+    bank = firestore_service.get_bank_account_by_profile(profile_id or "")
     problems = pay.validate_payable(claim, bank)
     if problems:
         raise HTTPException(status_code=409, detail=" ".join(problems))
@@ -154,6 +162,7 @@ async def get_claim(claim_id: str, current_user=Depends(require_role(*READ_ROLES
 
 _ACTION_TO_STATUS = {
     "approve": "APPROVED", "hold": "ON_HOLD", "reject": "REJECTED", "investigate": "UNDER_INVESTIGATION",
+    "resume": "AWAITING_APPROVAL",   # investigation finished: back to the approval queue
 }
 
 
@@ -166,6 +175,8 @@ async def decide(claim_id: str, body: DecisionRequest, current_user=Depends(requ
 
     new_status = _ACTION_TO_STATUS[body.action]
     current = claim["status"]
+    if current == "DISPUTED":
+        raise HTTPException(status_code=409, detail="This claim is under dispute. Resolve the dispute first.")
     if not engine.can_transition(current, new_status):
         raise HTTPException(status_code=409, detail=f"Cannot move claim from {current} to {new_status}")
     if body.action == "approve" and float(claim.get("recommended_amount") or 0) <= 0:
@@ -177,3 +188,33 @@ async def decide(claim_id: str, body: DecisionRequest, current_user=Depends(requ
         "status": new_status, "decision_reason": body.reason, "history": history,
         "decided_by": current_user.uid, "decided_at": _now(),
     })
+
+
+class ResolveDisputeRequest(BaseModel):
+    outcome: Literal["uphold", "dismiss"]
+    note: str = Field(min_length=3, max_length=500)
+    # uphold on a PAID claim: the additional amount to pay. Otherwise: the corrected amount (optional).
+    amount: Optional[float] = Field(default=None, ge=0)
+
+
+@router.post("/{claim_id}/dispute/resolve")
+async def resolve_dispute(claim_id: str, body: ResolveDisputeRequest, current_user=Depends(require_role(*DECIDE_ROLES))):
+    """A person answers the farmer's challenge. Never pays by itself: an upheld challenge goes back to approval."""
+    claim = firestore_service.get_claim(claim_id)
+    if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found")
+    policy = firestore_service.get_policy_by_id(claim.get("policy_id") or "")
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+    try:
+        update, supplementary = disp.resolve(
+            claim, policy, firestore_service.list_claims_by_policy(policy["id"]),
+            outcome=body.outcome, note=body.note, amount=body.amount, by_uid=current_user.uid)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    extra = None
+    if supplementary:   # create the (idempotent) supplementary claim first so a crash can't lose the payout
+        sup_id = supplementary.pop("id")
+        extra, _ = firestore_service.create_claim_once(sup_id, supplementary)
+    updated = firestore_service.update_claim(claim_id, update)
+    return {"claim": updated, "supplementary_claim": extra}

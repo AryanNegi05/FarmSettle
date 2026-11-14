@@ -1,0 +1,22 @@
+{
+  "event": "Gadchiroli heavy-rain spell, 2026-08-23 to 2026-08-25",
+  "source": "IMD district-wise daily rainfall (gauge-based district averages)",
+  "source_file": "rainfall_districtwise_daily_imd.csv",
+  "is_gauge_record": true,
+  "state": "MAHARASHTRA",
+  "district": "GADCHIROLI",
+  "daily_mm": [
+    {
+      "date": "2026-08-23",
+      "mm": 23.6
+    },
+    {
+      "date": "2026-08-24",
+      "mm": 48.2
+    },
+    {
+      "date": "2026-08-25",
+      "mm": 28.8
+    }
+  ]
+}

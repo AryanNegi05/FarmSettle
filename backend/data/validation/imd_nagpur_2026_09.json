@@ -1,0 +1,22 @@
+{
+  "event": "Nagpur heavy-rain spell, 2026-09-12 to 2026-09-14",
+  "source": "IMD district-wise daily rainfall (gauge-based district averages)",
+  "source_file": "rainfall_districtwise_daily_imd.csv",
+  "is_gauge_record": true,
+  "state": "MAHARASHTRA",
+  "district": "NAGPUR",
+  "daily_mm": [
+    {
+      "date": "2026-09-12",
+      "mm": 1.8
+    },
+    {
+      "date": "2026-09-13",
+      "mm": 32.7
+    },
+    {
+      "date": "2026-09-14",
+      "mm": 10.1
+    }
+  ]
+}

@@ -9,6 +9,8 @@ import MyFarmsPage from "../features/farmer/MyFarmsPage";
 import MyPolicyPage from "../features/farmer/MyPolicyPage";
 import BankAccountPage from "../features/farmer/BankAccountPage";
 import MyFarmMapPage from "../features/farmer/MyFarmMapPage";
+import FarmerClaimsPage from "../features/farmer/FarmerClaimsPage";
+import FarmerClaimDetailPage from "../features/farmer/FarmerClaimDetailPage";
 import InsurerDashboard from "../features/insurer/InsurerDashboard";
 import FarmerRegistryPage from "../features/insurer/FarmerRegistryPage";
 import FarmerDetailPage from "../features/insurer/FarmerDetailPage";
@@ -16,7 +18,9 @@ import PolicyListPage from "../features/insurer/PolicyListPage";
 import PolicyFormPage from "../features/insurer/PolicyFormPage";
 import OperationsMapPage from "../features/insurer/OperationsMapPage";
 import ClaimsPage from "../features/insurer/ClaimsPage";
+import BacktestPage from "../features/insurer/BacktestPage";
 import CommandCentrePage from "../features/insurer/command/CommandCentrePage";
+import BasisRiskPage from "../features/insurer/BasisRiskPage";
 import AuditorDashboard from "../features/auditor/AuditorDashboard";
 import AdminDashboard from "../features/admin/AdminDashboard";
 import ProtectedRoute from "../features/shared/ProtectedRoute";
@@ -68,6 +72,22 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={["farmer"]}>
             <FarmRegistrationPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/farmer/claims"
+        element={
+          <ProtectedRoute allowedRoles={["farmer"]}>
+            <FarmerClaimsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/farmer/claims/:claimId"
+        element={
+          <ProtectedRoute allowedRoles={["farmer"]}>
+            <FarmerClaimDetailPage />
           </ProtectedRoute>
         }
       />
@@ -155,6 +175,14 @@ export default function AppRoutes() {
       />
 
       <Route
+        path="/insurer/basis-risk"
+        element={
+          <ProtectedRoute allowedRoles={["insurer", "admin", "auditor"]}>
+            <BasisRiskPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/insurer/command"
         element={
           <ProtectedRoute allowedRoles={["insurer", "admin", "auditor"]}>
@@ -167,6 +195,15 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={["insurer", "admin", "auditor"]}>
             <ClaimsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/insurer/replay"
+        element={
+          <ProtectedRoute allowedRoles={["insurer", "admin", "auditor"]}>
+            <BacktestPage />
           </ProtectedRoute>
         }
       />

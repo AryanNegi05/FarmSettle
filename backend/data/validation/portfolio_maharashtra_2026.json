@@ -1,0 +1,343 @@
+{
+  "source": "IMD district-wise daily rainfall (gauge-based district averages)",
+  "coverage": [
+    "2026-08-19",
+    "2026-11-14"
+  ],
+  "terms": {
+    "sum_insured": 100000.0,
+    "trigger_mm": 75.0,
+    "full_payout_mm": 125.0,
+    "window_days": 3
+  },
+  "districts": 36,
+  "districts_paid": 4,
+  "total_sum_insured": 3600000.0,
+  "total_payout": 212000.0,
+  "results": [
+    {
+      "district": "SUBURBAN MUMBAI",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 182.7,
+      "outcome": "PAY",
+      "severity": 1.0,
+      "payout": 100000.0
+    },
+    {
+      "district": "GADCHIROLI",
+      "window_start": "2026-08-23",
+      "window_end": "2026-08-25",
+      "rainfall_mm": 100.6,
+      "outcome": "PAY",
+      "severity": 0.512,
+      "payout": 51200.0
+    },
+    {
+      "district": "PALGHAR",
+      "window_start": "2026-09-13",
+      "window_end": "2026-09-15",
+      "rainfall_mm": 94.6,
+      "outcome": "PAY",
+      "severity": 0.392,
+      "payout": 39200.0
+    },
+    {
+      "district": "MUMBAI CITY",
+      "window_start": "2026-09-13",
+      "window_end": "2026-09-15",
+      "rainfall_mm": 85.8,
+      "outcome": "PAY",
+      "severity": 0.216,
+      "payout": 21600.0
+    },
+    {
+      "district": "GONDIYA",
+      "window_start": "2026-09-24",
+      "window_end": "2026-09-26",
+      "rainfall_mm": 70.6,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "THANE",
+      "window_start": "2026-09-13",
+      "window_end": "2026-09-15",
+      "rainfall_mm": 68.6,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "NANDURBAR",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 67.5,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "RATNAGIRI",
+      "window_start": "2026-08-28",
+      "window_end": "2026-08-30",
+      "rainfall_mm": 60.6,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "JALGAON",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 59.0,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "SINDHUDURG",
+      "window_start": "2026-08-21",
+      "window_end": "2026-08-23",
+      "rainfall_mm": 51.1,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "BHANDARA",
+      "window_start": "2026-08-24",
+      "window_end": "2026-08-26",
+      "rainfall_mm": 50.3,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "CHANDRAPUR",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 48.3,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "RAIGAD",
+      "window_start": "2026-09-13",
+      "window_end": "2026-09-15",
+      "rainfall_mm": 45.5,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "DHULE",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 44.9,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "NAGPUR",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 44.6,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "WARDHA",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 39.8,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "AMARAVATI",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 38.1,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "PUNE",
+      "window_start": "2026-09-21",
+      "window_end": "2026-09-23",
+      "rainfall_mm": 37.8,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "PARBHANI",
+      "window_start": "2026-09-17",
+      "window_end": "2026-09-19",
+      "rainfall_mm": 36.8,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "KOLHAPUR",
+      "window_start": "2026-08-23",
+      "window_end": "2026-08-25",
+      "rainfall_mm": 36.7,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "NANDED",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 30.2,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "NASIK",
+      "window_start": "2026-09-13",
+      "window_end": "2026-09-15",
+      "rainfall_mm": 29.0,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "SANGLI",
+      "window_start": "2026-09-29",
+      "window_end": "2026-10-01",
+      "rainfall_mm": 28.2,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "LATUR",
+      "window_start": "2026-08-24",
+      "window_end": "2026-08-26",
+      "rainfall_mm": 27.7,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "YAVATMAL",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 27.5,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "HINGOLI",
+      "window_start": "2026-09-17",
+      "window_end": "2026-09-19",
+      "rainfall_mm": 26.9,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "BULDHANA",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 26.1,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "WASHIM",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 23.9,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "BID",
+      "window_start": "2026-09-18",
+      "window_end": "2026-09-20",
+      "rainfall_mm": 23.6,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "AKOLA",
+      "window_start": "2026-09-13",
+      "window_end": "2026-09-15",
+      "rainfall_mm": 23.3,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "SOLAPUR",
+      "window_start": "2026-09-21",
+      "window_end": "2026-09-23",
+      "rainfall_mm": 22.9,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "DHARASHIV",
+      "window_start": "2026-09-21",
+      "window_end": "2026-09-23",
+      "rainfall_mm": 22.7,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "CHHATRAPATI SAMBHAJINAGAR",
+      "window_start": "2026-09-12",
+      "window_end": "2026-09-14",
+      "rainfall_mm": 21.0,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "SATARA",
+      "window_start": "2026-08-28",
+      "window_end": "2026-08-30",
+      "rainfall_mm": 20.5,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "AHMADNAGAR",
+      "window_start": "2026-09-21",
+      "window_end": "2026-09-23",
+      "rainfall_mm": 17.6,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    },
+    {
+      "district": "JALNA",
+      "window_start": "2026-09-16",
+      "window_end": "2026-09-18",
+      "rainfall_mm": 12.0,
+      "outcome": "NONE",
+      "severity": 0.0,
+      "payout": 0.0
+    }
+  ]
+}

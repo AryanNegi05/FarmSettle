@@ -9,7 +9,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { listPolicies, PolicyOut } from "../../api/stage2";
 import {
   Claim, ClaimCalculation, ClaimStats, Reconciliation,
-  calculateClaim, decideClaim, getClaimStats, getReconciliation, listClaims, payClaim,
+  calculateClaim, decideClaim, getClaimStats, getReconciliation, listClaims, payClaim, resolveDispute,
 } from "../../api/claims";
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
@@ -21,9 +21,10 @@ const STATUS_STYLE: Record<string, string> = {
   PAID: "bg-green-900/40 text-green-300 border-green-700",
   ON_HOLD: "bg-gray-700/60 text-gray-300 border-gray-500",
   REJECTED: "bg-red-900/40 text-red-300 border-red-700",
+  DISPUTED: "bg-purple-900/40 text-purple-300 border-purple-700",
 };
 
-const FILTERS = ["ALL", "AWAITING_APPROVAL", "UNDER_INVESTIGATION", "APPROVED", "PAID", "ON_HOLD", "REJECTED"];
+const FILTERS = ["ALL", "AWAITING_APPROVAL", "UNDER_INVESTIGATION", "DISPUTED", "APPROVED", "PAID", "ON_HOLD", "REJECTED"];
 
 export default function ClaimsPage() {
   const { user } = useAuth();
@@ -104,16 +105,60 @@ export default function ClaimsPage() {
   );
 }
 
+function DisputePanel({ claim, canDecide, onChanged, onError }: {
+  claim: Claim; canDecide: boolean; onChanged: (m: string) => void; onError: (m: string) => void;
+}) {
+  const d = (claim.disputes ?? []).find((x) => x.status === "open");
+  const wasPaid = claim.pre_dispute_status === "PAID";
+  const [note, setNote] = useState("");
+  const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (!d) return null;
+
+  async function answer(outcome: "uphold" | "dismiss") {
+    if (note.trim().length < 3) { onError("Please type your answer to the farmer (at least 3 characters)."); return; }
+    setBusy(true);
+    try {
+      const r = await resolveDispute(claim.id, { outcome, note: note.trim(), amount: amount === "" ? undefined : Number(amount) });
+      onChanged(outcome === "dismiss" ? "Challenge dismissed; the earlier decision stands."
+        : r.supplementary_claim ? `Challenge upheld: ${inr(r.supplementary_claim.recommended_amount)} queued as an additional claim for approval.`
+        : "Challenge upheld: the claim is back in the approval queue.");
+      setNote(""); setAmount("");
+    } catch (e) { onError(e instanceof Error ? e.message : "Could not resolve the challenge"); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="rounded-lg border border-purple-700 bg-purple-900/20 p-3 space-y-2">
+      <p className="text-sm text-purple-200 font-semibold">Farmer challenge #{d.id}: {d.category.replace(/_/g, " ")}</p>
+      <p className="text-sm text-gray-200">“{d.reason}”</p>
+      <p className="text-[11px] text-gray-400">Claim was <b>{(claim.pre_dispute_status ?? "").toLowerCase()}</b> before the challenge. {wasPaid ? "Upholding queues an additional payment as a separate claim; the original payment is never repeated." : "Upholding sends it back to the approval queue for a new decision."}</p>
+      {canDecide && (
+        <div className="flex gap-2 flex-wrap items-center">
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Your answer to the farmer (required)"
+            className="flex-1 min-w-[200px] bg-navy border border-navy-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500" />
+          <input value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal"
+            placeholder={wasPaid ? "Additional ₹ to pay" : "Corrected ₹ (optional)"}
+            className="w-44 bg-navy border border-navy-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500" />
+          <button disabled={busy} onClick={() => answer("uphold")} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-green text-navy disabled:opacity-40">Uphold</button>
+          <button disabled={busy} onClick={() => answer("dismiss")} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-navy-700 text-white disabled:opacity-40">Dismiss</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatCards({ s }: { s: ClaimStats }) {
   const items = [
     ["Awaiting approval", s.awaiting_approval, inr(s.amount_awaiting_approval)],
     ["Under investigation", s.under_investigation, ""],
+    ["Challenged by farmer", s.disputed ?? 0, ""],
     ["Approved, unpaid", s.approved, inr(s.amount_approved_unpaid)],
     ["Paid (simulated)", s.paid, inr(s.amount_paid)],
     ["Approved exposure", "", inr(s.approved_exposure)],
   ] as const;
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
       {items.map(([label, n, amt]) => (
         <div key={label} className="bg-navy-800 border border-navy-700 rounded-xl p-3">
           <p className="text-xs text-gray-400">{label}</p>
@@ -125,6 +170,26 @@ function StatCards({ s }: { s: ClaimStats }) {
   );
 }
 
+type Action = "approve" | "hold" | "reject" | "investigate" | "resume";
+const DONE: Record<Action, string> = {
+  approve: "approved", hold: "put on hold", reject: "rejected", investigate: "sent for investigation",
+  resume: "returned to the approval queue",
+};
+// Mirrors the backend status machine so only actions that can succeed are offered.
+const ACTIONS: Record<string, Action[]> = {
+  AWAITING_APPROVAL: ["approve", "hold", "reject"],
+  RECOMMENDED: ["hold", "reject"],
+  UNDER_INVESTIGATION: ["resume", "hold", "reject"],
+  ON_HOLD: ["approve", "resume", "reject"],
+};
+const BTN: Record<Action, { label: string; cls: string }> = {
+  approve: { label: "Approve", cls: "bg-brand-green text-navy" },
+  hold: { label: "Hold", cls: "bg-navy-700 text-white" },
+  investigate: { label: "Investigate", cls: "bg-navy-700 text-white" },
+  resume: { label: "Investigation done, ready to approve", cls: "bg-navy-700 text-white" },
+  reject: { label: "Reject", cls: "bg-red-800 text-white" },
+};
+
 function ClaimCard({ claim, canDecide, onChanged, onError }: {
   claim: Claim; canDecide: boolean; onChanged: (m: string) => void; onError: (m: string) => void;
 }) {
@@ -133,13 +198,13 @@ function ClaimCard({ claim, canDecide, onChanged, onError }: {
   const [busy, setBusy] = useState(false);
   const calc = claim.calculation;
 
-  async function act(action: "approve" | "hold" | "reject" | "investigate") {
+  async function act(action: Action) {
     if (reason.trim().length < 3) { onError("Please type a reason (at least 3 characters)."); return; }
     setBusy(true);
     try {
       await decideClaim(claim.id, action, reason.trim());
       setReason("");
-      onChanged(`Claim ${action === "approve" ? "approved" : action === "hold" ? "put on hold" : action === "reject" ? "rejected" : "sent for investigation"}.`);
+      onChanged(`Claim ${DONE[action]}.`);
     } catch (e) { onError(e instanceof Error ? e.message : "Action failed"); }
     finally { setBusy(false); }
   }
@@ -153,7 +218,8 @@ function ClaimCard({ claim, canDecide, onChanged, onError }: {
     finally { setBusy(false); }
   }
 
-  const decidable = ["AWAITING_APPROVAL", "UNDER_INVESTIGATION", "ON_HOLD", "RECOMMENDED"].includes(claim.status);
+  const actions = ACTIONS[claim.status] ?? [];
+  const decidable = actions.length > 0;
 
   return (
     <div className="bg-navy-800 border border-navy-700 rounded-xl p-4 space-y-3">
@@ -179,18 +245,20 @@ function ClaimCard({ claim, canDecide, onChanged, onError }: {
       </button>
       {open && <Details calc={calc} claim={claim} />}
 
+      {claim.supplementary && <p className="text-xs text-purple-300">Additional payment after the farmer's challenge was upheld (parent claim {claim.parent_claim_id}).</p>}
+      {claim.status === "DISPUTED" && (
+        <DisputePanel claim={claim} canDecide={canDecide}
+          onChanged={onChanged} onError={onError} />
+      )}
+
       {canDecide && decidable && (
         <div className="flex gap-2 flex-wrap items-center">
           <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)"
             className="flex-1 min-w-[200px] bg-navy border border-navy-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500" />
-          <button disabled={busy || claim.recommended_amount <= 0} onClick={() => act("approve")}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-green text-navy disabled:opacity-40">Approve</button>
-          <button disabled={busy} onClick={() => act("hold")}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-navy-700 text-white disabled:opacity-40">Hold</button>
-          <button disabled={busy} onClick={() => act("investigate")}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-navy-700 text-white disabled:opacity-40">Investigate</button>
-          <button disabled={busy} onClick={() => act("reject")}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-800 text-white disabled:opacity-40">Reject</button>
+          {actions.map((a) => (
+            <button key={a} disabled={busy || (a === "approve" && claim.recommended_amount <= 0)} onClick={() => act(a)}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40 ${BTN[a].cls}`}>{BTN[a].label}</button>
+          ))}
         </div>
       )}
 

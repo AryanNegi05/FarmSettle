@@ -60,7 +60,8 @@ def build_payment_record(claim: dict[str, Any], bank: dict[str, Any], by_uid: st
 
 def reconcile(claims: list[dict[str, Any]], payments: list[dict[str, Any]]) -> dict[str, Any]:
     """Cross-check claims against payments; any non-empty issue list is a problem."""
-    paid_claims = {c["id"]: c for c in claims if c.get("status") == "PAID"}
+    from app.services.claims import effective_status   # a disputed-after-payment claim is still paid
+    paid_claims = {c["id"]: c for c in claims if effective_status(c) == "PAID"}
     by_claim = {p["claim_id"]: p for p in payments}
     issues: list[str] = []
     for cid, c in paid_claims.items():
@@ -85,10 +86,11 @@ def reconcile(claims: list[dict[str, Any]], payments: list[dict[str, Any]]) -> d
 
 
 def portfolio_stats(claims: list[dict[str, Any]], payments: list[dict[str, Any]]) -> dict[str, Any]:
+    from app.services.claims import effective_status
     def total(status: set[str]) -> float:
-        return round(sum(float(c.get("recommended_amount") or 0) for c in claims if c.get("status") in status), 2)
+        return round(sum(float(c.get("recommended_amount") or 0) for c in claims if effective_status(c) in status), 2)
     def count(status: set[str]) -> int:
-        return sum(1 for c in claims if c.get("status") in status)
+        return sum(1 for c in claims if effective_status(c) in status)
     return {
         "total_claims": len(claims),
         "under_investigation": count({"UNDER_INVESTIGATION", "CREATED", "RECOMMENDED"}),
@@ -97,6 +99,7 @@ def portfolio_stats(claims: list[dict[str, Any]], payments: list[dict[str, Any]]
         "approved": count({"APPROVED", "PAYMENT_PENDING"}),
         "paid": count({"PAID"}),
         "rejected": count({"REJECTED"}),
+        "disputed": sum(1 for c in claims if c.get("status") == "DISPUTED"),
         "amount_awaiting_approval": total({"AWAITING_APPROVAL"}),
         "amount_approved_unpaid": total({"APPROVED", "PAYMENT_PENDING"}),
         "amount_paid": round(sum(float(p["amount"]) for p in payments), 2),

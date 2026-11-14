@@ -63,3 +63,37 @@ export const evaluateCommand = (b: CCRequest) =>
   apiFetch<CCResult>("/command/evaluate", { method: "POST", body: b });
 export const getFarmSeries = (b: CCRequest & { farm_id: string; steps?: number }) =>
   apiFetch<CCSeries>("/command/farm-series", { method: "POST", body: b });
+
+// ─── Sensor Forensics ────────────────────────────────────────────────────────
+export type AnomalyType = "spike" | "stuck" | "drift" | "dead" | "neighbour_gap";
+export interface ForensicsAnomaly { tick: number; end: number; type: AnomalyType; severity: "high" | "medium" | "low"; detail: string }
+export interface ForensicsFeature {
+  feature: string; label: string; unit: string; about: string; value: number; contribution: number; fixed_default: boolean;
+}
+export interface ForensicsExplanation {
+  class: string; bias: number; features: ForensicsFeature[]; why: string; classes: string[];
+  vs_normal: { class: string; bias: number; features: ForensicsFeature[] } | null;
+}
+export interface ForensicsNeighbour {
+  id: string; distance_m: number; now: number; diff_now: number; mean_abs_diff_window: number; lead_correlation: number | null;
+  class: string; trust: number; status: SensorStatus; series: number[];
+}
+export interface SensorForensics {
+  sensor: { id: string; type: "rainfall" | "water_level"; lat: number; lng: number; value: number; unit: string; status: SensorStatus };
+  simulated: boolean; notes: string[]; supported: boolean; message?: string;
+  neighbours: (ForensicsNeighbour | { id: string; distance_m: number; value: number })[];
+  classification?: {
+    predicted_class: string; confidence: number; trust: number; class_probabilities: Record<string, number>;
+    is_flagged: boolean; note: string; injected_fault: string | null; satellite_wet: boolean; storm_nearby: boolean;
+    agreement: { state: "match" | "partial" | "missed" | "false_alarm" | "clear"; text: string };
+  };
+  trust_breakdown?: { class_base: number; confidence: number; trust: number; text: string };
+  series?: { ticks: number[]; now_index: number; window_start: number; values: number[]; neighbour_median: number[] };
+  anomalies?: ForensicsAnomaly[];
+  timeline?: { tick: number; class: string; confidence: number }[];
+  explanation?: ForensicsExplanation;
+  farm_impact?: { farm_id: string; farm: string; role: "used" | "excluded"; weight: number; distance_m: number;
+                  estimated_rainfall: number | null; outcome: string | null; amount: number | null }[];
+}
+export const getSensorForensics = (b: CCRequest & { sensor_id: string }) =>
+  apiFetch<SensorForensics>("/command/sensor-forensics", { method: "POST", body: b });

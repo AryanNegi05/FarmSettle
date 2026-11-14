@@ -144,6 +144,27 @@ def _noise(seed: Optional[int], key: str, i: int) -> float:
     return random.Random(f"{seed}-{key}-{i}").gauss(0, 1)
 
 
+def _sensor_window(s: Sensor, field_now: float, c: Controls) -> tuple[list[float], Optional[str]]:
+    """The 6 samples of one rainfall gauge (5 previous + current), with any injected fault and override applied."""
+    # 6 samples around the field value with sensor noise (like the model's training data):
+    # 5 previous readings + the current one. The history must NOT include the current value.
+    noise_std = 0.3 + 0.05 * field_now
+    vals = [max(0.0, field_now + noise_std * _noise(c.seed, s.id, i + 1)) for i in range(6)]
+    fault = c.faults.get(s.id)
+    if fault == "spike":
+        vals[5] = max(field_now, 1.0) * 6 + 25
+    elif fault == "stuck":
+        vals = [vals[0]] * 6
+    elif fault == "dead":
+        vals = [0.0] * 6
+    elif fault == "drift":
+        vals = [v + 3.0 * i for i, v in enumerate(vals)]
+        vals[5] += 12.0
+    if s.id in c.sensor_overrides:
+        vals[5] = max(0.0, c.sensor_overrides[s.id])
+    return vals, fault
+
+
 def _readings_and_history(sensors: list[Sensor], fld: RainField, c: Controls):
     """Current GaugeReadings plus 5 previous readings per rainfall gauge, with injected faults."""
     readings: list[GaugeReading] = []
@@ -155,26 +176,47 @@ def _readings_and_history(sensors: list[Sensor], fld: RainField, c: Controls):
             level = c.sensor_overrides.get(s.id, level)
             readings.append(GaugeReading(s.id, "water_level", s.latitude, s.longitude, round(max(0.0, level), 1), "cm", 0))
             continue
-        # 6 samples around the field value with sensor noise (like the model's training data):
-        # 5 previous readings + the current one. The history must NOT include the current value.
-        noise_std = 0.3 + 0.05 * field_now
-        vals = [max(0.0, field_now + noise_std * _noise(c.seed, s.id, i + 1)) for i in range(6)]
-        fault = c.faults.get(s.id)
-        if fault == "spike":
-            vals[5] = max(field_now, 1.0) * 6 + 25
-        elif fault == "stuck":
-            vals = [vals[0]] * 6
-        elif fault == "dead":
-            vals = [0.0] * 6
-        elif fault == "drift":
-            vals = [v + 3.0 * i for i, v in enumerate(vals)]
-            vals[5] += 12.0
-        if s.id in c.sensor_overrides:
-            vals[5] = max(0.0, c.sensor_overrides[s.id])
+        vals, fault = _sensor_window(s, field_now, c)
         readings.append(GaugeReading(s.id, "rainfall", s.latitude, s.longitude, round(vals[5], 2), "mm/hr", 4,
                                      is_faulty=bool(fault), fault_type=fault))
         history[s.id] = [round(v, 3) for v in vals[:5]]
     return readings, history
+
+
+def make_field(controls: Controls, all_farms: list[dict[str, Any]]):
+    """The rain field for these controls (local per-farm adjustments become small Gaussian cells)."""
+    circles = {f["farm_id"]: fitted_circle(f["ring"]) for f in all_farms}
+    cells = []
+    for f in all_farms:
+        add = controls.farm_adjust.get(f["farm_id"])
+        if add:
+            circ = circles[f["farm_id"]]
+            cells.append((circ["centre"][0], circ["centre"][1],
+                          max(ADJUST_MIN, min(ADJUST_MAX, float(add))), max(FARM_CELL_MIN_RADIUS_M, 1.5 * circ["radius_m"])))
+    return RainField(controls, cells), circles
+
+
+def sensor_context(controls: Controls, fld: "RainField") -> dict[str, Any]:
+    """Sensors, current readings, histories and the LightGBM classification of every sensor."""
+    sensors = build_sensors(controls.sensor_count, controls.seed)
+    readings, history = _readings_and_history(sensors, fld, controls)
+
+    # Supporting weather evidence proxy (simulated): where an intense local cell really is wet, and
+    # where the storm track is close. These separate a genuine localised cell from a spike.
+    def local_excess(r: GaugeReading) -> float:
+        return fld.at(r.lat, r.lng) - controls.district_mm_hr
+
+    wet_ids = {r.sensor_id for r in readings if r.sensor_type == "rainfall" and local_excess(r) >= 20.0}
+    storm_ids: set[str] = set()
+    if controls.storm:
+        for r in readings:
+            # within 3 sigma: beyond that the storm's rain is negligible
+            if distance_m(r.lng, r.lat, controls.storm["lng"], controls.storm["lat"]) <= 3 * controls.storm["radius_m"]:
+                storm_ids.add(r.sensor_id)
+
+    cls = {c.sensor_id: c for c in classify_readings(readings, history, wet_ids, storm_ids)}
+    return {"sensors": sensors, "readings": readings, "history": history, "wet_ids": wet_ids,
+            "storm_ids": storm_ids, "cls": cls}
 
 
 # ─── Farms: only those registered on the shared land ─────────────────────────
@@ -254,35 +296,11 @@ def evaluate(controls: Controls, farms: Optional[list[dict[str, Any]]] = None,
              only_farm_ids: Optional[set[str]] = None) -> dict[str, Any]:
     t0 = time.time()
     all_farms = farms if farms is not None else _collect_farms()
-    circles = {f["farm_id"]: fitted_circle(f["ring"]) for f in all_farms}
 
-    # Local rain adjustments become small Gaussian cells centred on the chosen farm.
-    cells = []
-    for f in all_farms:
-        add = controls.farm_adjust.get(f["farm_id"])
-        if add:
-            circ = circles[f["farm_id"]]
-            cells.append((circ["centre"][0], circ["centre"][1],
-                          max(ADJUST_MIN, min(ADJUST_MAX, float(add))), max(FARM_CELL_MIN_RADIUS_M, 1.5 * circ["radius_m"])))
-    fld = RainField(controls, cells)
+    fld, circles = make_field(controls, all_farms)
+    ctx = sensor_context(controls, fld)
+    sensors, readings, history, cls = ctx["sensors"], ctx["readings"], ctx["history"], ctx["cls"]
 
-    sensors = build_sensors(controls.sensor_count, controls.seed)
-    readings, history = _readings_and_history(sensors, fld, controls)
-
-    # Supporting weather evidence proxy (simulated): where an intense local cell really is wet, and
-    # where the storm track is close. These separate a genuine localised cell from a spike.
-    def local_excess(r: GaugeReading) -> float:
-        return fld.at(r.lat, r.lng) - controls.district_mm_hr
-
-    wet_ids = {r.sensor_id for r in readings if r.sensor_type == "rainfall" and local_excess(r) >= 20.0}
-    storm_ids: set[str] = set()
-    if controls.storm:
-        for r in readings:
-            # within 3 sigma: beyond that the storm's rain is negligible
-            if distance_m(r.lng, r.lat, controls.storm["lng"], controls.storm["lat"]) <= 3 * controls.storm["radius_m"]:
-                storm_ids.add(r.sensor_id)
-
-    cls = {c.sensor_id: c for c in classify_readings(readings, history, wet_ids, storm_ids)}
     rain_r = [r for r in readings if r.sensor_type == "rainfall"]
     water_r = [r for r in readings if r.sensor_type == "water_level"]
     flood_district = derive_flood_risk(water_r) or 0.0

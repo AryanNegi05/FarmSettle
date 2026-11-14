@@ -282,6 +282,44 @@ class FirestoreService:
         return claim
 
     # ═══════════════════════════════════════════════════════════════════════════
+    # AGENT RUNS  (Stage 7 investigation records and traces)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def save_agent_run(self, run: Dict[str, Any]) -> None:
+        self.db.collection("agent_runs").document(run["id"]).set(self._firestore_safe(run))
+
+    def get_agent_run(self, run_id: str) -> Optional[Dict[str, Any]]:
+        doc = self.db.collection("agent_runs").document(run_id).get()
+        return doc.to_dict() if doc.exists else None
+
+    def list_agent_runs(self, limit: int = 20) -> List[Dict[str, Any]]:
+        runs = [d.to_dict() for d in self.db.collection("agent_runs").stream()]
+        runs.sort(key=lambda r: r.get("created_at", ""), reverse=True)
+        return [{k: r.get(k) for k in ("id", "created_at", "event_id", "approval_status", "queued_claim_ids")} |
+                {"needs_human": (r.get("compliance") or {}).get("needs_human", 0),
+                 "total_amount": (r.get("compliance") or {}).get("total_amount", 0)} for r in runs[:limit]]
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # LOSS REPORTS  (crop-loss experience reported by a farmer or recorded by the insurer's field staff)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def create_loss_report(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        ref = self.db.collection("loss_reports").document()
+        ref.set(data)
+        return {**data, "id": ref.id}
+
+    def list_loss_reports(self, farm_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        col = self.db.collection("loss_reports")
+        docs = col.where(filter=FieldFilter("farm_id", "==", farm_id)).stream() if farm_id else col.stream()
+        out = []
+        for d in docs:
+            r = d.to_dict()
+            r["id"] = d.id
+            out.append(r)
+        out.sort(key=lambda r: (str(r.get("observed_on") or ""), str(r.get("created_at") or "")), reverse=True)
+        return out
+
+    # ═══════════════════════════════════════════════════════════════════════════
     # PAYMENTS  (document id = claim id, so one payment per settlement)
     # ═══════════════════════════════════════════════════════════════════════════
 
