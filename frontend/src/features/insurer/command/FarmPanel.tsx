@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { CCFarm, CCSeries } from "../../../api/command";
-import { calculateClaim } from "../../../api/claims";
+import { Claim, calculateClaim, decideClaim, getClaim } from "../../../api/claims";
 import { RISK_COLOUR, RISK_LABEL, inr } from "./layers";
 
 const RECOMMENDATION: Record<string, string> = {
@@ -13,34 +13,20 @@ interface Props {
   prevPayout: number | undefined;
   series: CCSeries | null;
   tl: number | null;
+  /** Identifies the scenario on screen, so a claim is tied to exactly this event. */
+  eventId: string;
   onAdjust: (farmId: string, mmHr: number) => void;
   onClose: () => void;
   role: string | undefined;
 }
 
-export default function FarmPanel({ farm, prevPayout, series, tl, onAdjust, onClose, role }: Props) {
-  const [msg, setMsg] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+export default function FarmPanel({ farm, prevPayout, series, tl, eventId, onAdjust, onClose, role }: Props) {
   const claim = farm.claim;
   const now = claim?.recommended_amount ?? 0;
   const delta = prevPayout !== undefined && prevPayout > 0 ? ((now - prevPayout) / prevPayout) * 100 : null;
   const canDecide = role === "insurer" || role === "admin";
   const est = farm.estimated_rainfall;
   const gap = est !== null ? farm.true_rainfall - est : null;
-
-  async function sendToReview() {
-    if (!farm.policy || est === null) return;
-    if (!window.confirm(`Create a claim record for ${farm.name} (${inr(now)} recommended)? A person still has to approve it.`)) return;
-    setBusy(true);
-    try {
-      const r = await calculateClaim({
-        policy_id: farm.policy.id, event_id: "command-centre", estimated_rainfall_mm: est,
-        rainfall_sigma_mm: farm.uncertainty ?? 0, sensor_trust: farm.sensor_confidence ?? undefined, dry_run: false,
-      });
-      setMsg(r.created ? "Claim created: open Claims Review to decide." : "A claim for this farm and event already exists.");
-    } catch (e) { setMsg(e instanceof Error ? e.message : "Could not create the claim"); }
-    finally { setBusy(false); }
-  }
 
   return (
     <div className="absolute top-[96px] left-3 z-20 w-[350px] max-w-[calc(100%-24px)] max-h-[calc(100%-96px-84px)] overflow-y-auto rounded-2xl border border-white/10 bg-slate-900/85 backdrop-blur-md shadow-2xl text-sm text-gray-200">
@@ -86,7 +72,7 @@ export default function FarmPanel({ farm, prevPayout, series, tl, onAdjust, onCl
           <div className="rounded-xl bg-black/30 border border-white/10 p-3 text-xs text-gray-300 space-y-1">
             <p>This farm has no insurance policy, so no payout can be calculated.</p>
             {canDecide && farm.farmer_profile_id && (
-              <Link to={`/insurer/policies/new?farmerId=${farm.farmer_profile_id}`} className="text-cyan-300 hover:underline">Create a policy for this farmer →</Link>
+              <Link to={`/insurer/policies/new?farmerId=${farm.farmer_profile_id}&farmId=${farm.farm_id}`} className="text-cyan-300 hover:underline">Create a policy for this farmer →</Link>
             )}
           </div>
         )}
@@ -129,14 +115,7 @@ export default function FarmPanel({ farm, prevPayout, series, tl, onAdjust, onCl
           </ul>
         </section>
 
-        {canDecide && claim && claim.outcome !== "NONE" && (
-          <div className="space-y-1.5">
-            <button disabled={busy} onClick={sendToReview} className="w-full text-xs font-semibold px-3 py-2 rounded-lg bg-cyan-500 text-slate-900 disabled:opacity-40">
-              {busy ? "Working…" : "Send to Claims Review"}
-            </button>
-            {msg && <p className="text-[11px] text-green-300">{msg} <Link to="/insurer/claims" className="underline">Open Claims Review</Link></p>}
-          </div>
-        )}
+        <DecisionBox farm={farm} eventId={eventId} canDecide={canDecide} />
         <p className="text-[10px] text-gray-500">Coverage circle ({Math.round(farm.circle_radius_m)} m) is a monitoring zone, not a guarantee that rain is uniform inside it. Amounts are simulated.</p>
       </div>
     </div>
@@ -231,5 +210,124 @@ function TimeChart({ series, tl, policyTrigger }: { series: CCSeries | null; tl:
       </svg>
       <p className="text-[10px] text-gray-500">cyan = sensor estimate · white dashed = actual · amber = payout · amber dashed = trigger{tl !== null ? " · pink = now" : ""}</p>
     </div>
+  );
+}
+
+const STATUS_STYLE: Record<string, string> = {
+  AWAITING_APPROVAL: "bg-amber-500/20 text-amber-200 border-amber-500/40", UNDER_INVESTIGATION: "bg-orange-500/20 text-orange-200 border-orange-500/40",
+  APPROVED: "bg-blue-500/20 text-blue-200 border-blue-500/40", PAID: "bg-green-500/20 text-green-200 border-green-500/40",
+  ON_HOLD: "bg-gray-500/20 text-gray-200 border-gray-500/40", REJECTED: "bg-red-500/20 text-red-200 border-red-500/40",
+};
+
+/** Insurer decision for this farm and this scenario. Nothing is decided automatically: a person
+ *  creates the claim record, types a reason and confirms each decision. */
+function DecisionBox({ farm, eventId, canDecide }: { farm: CCFarm; eventId: string; canDecide: boolean }) {
+  const policy = farm.policy;
+  const [claim, setClaim] = useState<Claim | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [reason, setReason] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const est = farm.estimated_rainfall;
+  const outcome = farm.claim?.outcome ?? "NONE";
+
+  // A claim's identity is farm + event + policy, so the same scenario always finds the same record.
+  const claimId = policy ? `${farm.farm_id}__${eventId}__${policy.id}` : null;
+
+  useEffect(() => {
+    setMsg(null); setReason("");
+    if (!claimId) { setClaim(null); return; }
+    let live = true;
+    setLoading(true);
+    const t = window.setTimeout(() => {
+      getClaim(claimId).then((c) => { if (live) setClaim(c); }).catch(() => { if (live) setClaim(null); }).finally(() => { if (live) setLoading(false); });
+    }, 300);
+    return () => { live = false; window.clearTimeout(t); };
+  }, [claimId]);
+
+  if (!policy) return null;
+
+  async function create() {
+    if (est === null || !policy) return;
+    if (!window.confirm(`Create a claim record for ${farm.name} for this scenario (${inr(farm.claim?.recommended_amount ?? 0)} recommended)? A person still has to approve it.`)) return;
+    setBusy(true); setMsg(null);
+    try {
+      const r = await calculateClaim({
+        policy_id: policy.id, event_id: eventId, estimated_rainfall_mm: est, rainfall_sigma_mm: farm.uncertainty ?? 0,
+        sensor_trust: farm.sensor_confidence ?? undefined, dry_run: false,
+      });
+      if (r.claim) { setClaim(r.claim); setMsg({ ok: true, text: r.created ? "Claim record created." : "A record for this scenario already existed." }); }
+      else setMsg({ ok: true, text: "No payout for this scenario, so there is nothing to decide." });
+    } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : "Could not create the claim" }); }
+    finally { setBusy(false); }
+  }
+
+  async function decide(action: "approve" | "hold" | "investigate" | "reject") {
+    if (!claim) return;
+    if (reason.trim().length < 3) { setMsg({ ok: false, text: "Type a reason first (at least 3 characters)." }); return; }
+    const verb = { approve: "APPROVE", hold: "put on HOLD", investigate: "send for INVESTIGATION", reject: "REJECT" }[action];
+    if (!window.confirm(`${verb[0].toUpperCase() + verb.slice(1)} this claim for ${farm.name} (${inr(claim.recommended_amount)})?\n\nReason: ${reason.trim()}`)) return;
+    setBusy(true); setMsg(null);
+    try {
+      const updated = await decideClaim(claim.id, action, reason.trim());
+      setClaim(updated); setReason("");
+      setMsg({ ok: true, text: `Recorded: ${updated.status.replace(/_/g, " ").toLowerCase()}.` });
+    } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : "Decision failed" }); }
+    finally { setBusy(false); }
+  }
+
+  const decidable = claim && ["AWAITING_APPROVAL", "UNDER_INVESTIGATION", "ON_HOLD", "RECOMMENDED"].includes(claim.status);
+  const stale = claim && est !== null && Math.abs(claim.calculation.estimated_rainfall_mm - est) > 1;
+
+  return (
+    <section className="rounded-xl bg-black/30 border border-white/10 p-3 space-y-2">
+      <p className="text-[11px] uppercase tracking-wider text-gray-400">Insurer decision · scenario {eventId}</p>
+
+      {loading && <p className="text-xs text-gray-500">Checking for an existing claim…</p>}
+
+      {!loading && !claim && (
+        outcome === "NONE" || !farm.claim
+          ? <p className="text-xs text-gray-400">No payout in this scenario, so there is nothing to decide.</p>
+          : canDecide
+            ? <button disabled={busy} onClick={create} className="w-full text-xs font-semibold px-3 py-2 rounded-lg bg-cyan-500 text-slate-900 disabled:opacity-40">
+                {busy ? "Working…" : `Create claim record (${inr(farm.claim.recommended_amount)} recommended)`}
+              </button>
+            : <p className="text-xs text-gray-400">No claim record yet. Only an insurer or admin can create one.</p>
+      )}
+
+      {claim && (
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <span className={`text-[11px] px-2 py-0.5 rounded-full border ${STATUS_STYLE[claim.status] ?? "border-white/20 text-gray-200"}`}>{claim.status.replace(/_/g, " ")}</span>
+            <span className="text-sm font-semibold text-white">{inr(claim.recommended_amount)}</span>
+          </div>
+          {stale && <p className="text-[11px] text-amber-200">Rainfall has changed since this claim was created ({claim.calculation.estimated_rainfall_mm} → {est} mm/hr). Decisions apply to the saved record.</p>}
+          {claim.decision_reason && <p className="text-[11px] text-gray-400">Last reason: “{claim.decision_reason}”</p>}
+
+          {canDecide && decidable && (
+            <div className="space-y-1.5">
+              <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)"
+                className="w-full bg-black/30 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-gray-500" />
+              <div className="grid grid-cols-2 gap-1.5">
+                <button disabled={busy || claim.recommended_amount <= 0} onClick={() => decide("approve")} className="text-xs font-semibold px-2 py-1.5 rounded-lg bg-green-500 text-slate-900 disabled:opacity-40">Approve</button>
+                <button disabled={busy} onClick={() => decide("reject")} className="text-xs font-semibold px-2 py-1.5 rounded-lg bg-red-600 text-white disabled:opacity-40">Reject</button>
+                <button disabled={busy} onClick={() => decide("investigate")} className="text-xs font-semibold px-2 py-1.5 rounded-lg bg-white/10 text-white border border-white/10 disabled:opacity-40">Request investigation</button>
+                <button disabled={busy} onClick={() => decide("hold")} className="text-xs font-semibold px-2 py-1.5 rounded-lg bg-white/10 text-white border border-white/10 disabled:opacity-40">Place on hold</button>
+              </div>
+              <p className="text-[10px] text-gray-500">You will be asked to confirm. Approved claims are paid (simulated) from Claims Review.</p>
+            </div>
+          )}
+          {!canDecide && <p className="text-[11px] text-gray-500">Read-only: only an insurer or admin can decide.</p>}
+          {claim.history.length > 0 && (
+            <ul className="text-[10px] text-gray-500 space-y-0.5">
+              {claim.history.slice(-3).map((h, i) => <li key={i}>{new Date(h.at).toLocaleTimeString()} · {h.from ?? "—"} → {h.to} · {h.reason}</li>)}
+            </ul>
+          )}
+        </>
+      )}
+
+      {msg && <p className={`text-[11px] ${msg.ok ? "text-green-300" : "text-red-300"}`}>{msg.text}</p>}
+      <Link to="/insurer/claims" className="text-[11px] text-cyan-300 hover:underline inline-block">Open Claims Review (payments, all claims) →</Link>
+    </section>
   );
 }

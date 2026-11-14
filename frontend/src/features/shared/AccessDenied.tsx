@@ -1,13 +1,24 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
+import { homeFor } from "./nav";
+
 export default function AccessDenied() {
+  const { user } = useAuth();
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4">
+    <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 px-6 text-center">
       <div className="text-6xl">🚫</div>
       <h1 className="text-2xl font-bold text-white">Access Denied</h1>
-      <p className="text-gray-400">You don't have permission to view this page.</p>
-      <Link to="/" className="mt-2 px-6 py-2 bg-brand-blue text-white rounded-lg hover:bg-blue-500 transition">
-        Go Home
-      </Link>
+      <p className="text-gray-400">
+        {user ? <>You're signed in as <b className="text-white">{user.role}</b>, and this page is for a different role.</> : "Please sign in to continue."}
+      </p>
+      <div className="flex gap-3 mt-2">
+        {user ? (
+          <Link to={homeFor(user.role)} className="px-6 py-2 bg-brand-blue text-white rounded-lg hover:bg-blue-500 transition">Go to my dashboard</Link>
+        ) : (
+          <Link to="/login" className="px-6 py-2 bg-brand-blue text-white rounded-lg hover:bg-blue-500 transition">Sign in</Link>
+        )}
+        <Link to="/" className="px-6 py-2 bg-navy-700 text-white rounded-lg hover:bg-navy-600 transition">Home</Link>
+      </div>
     </div>
   );
 }

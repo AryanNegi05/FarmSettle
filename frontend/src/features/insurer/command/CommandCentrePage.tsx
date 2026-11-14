@@ -11,7 +11,7 @@
  * claim engine). Weather and sensors are simulated.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import maplibregl, { GeoJSONSource, Map } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useAuth } from "../../../hooks/useAuth";
@@ -44,11 +44,22 @@ const BLANK_STYLE: maplibregl.StyleSpecification = {
 const DEFAULT_CONTROLS: Controls = { district: 2, storm: null, faults: {}, overrides: {}, farmAdjust: {}, sensorCount: 18 };
 const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 const SOURCES = ["land", "farms", "circles", "ripples", "sensors", "towers", "links", "storm"] as const;
-const FARM_LAYERS = ["farms-fill", "farms-line", "farms-3d", "circles-fill", "circles-glow", "circles-line", "ripple-a", "ripple-b"];
+const FARM_LAYERS = ["farms-fill", "farms-line", "farms-3d", "farms-band", "circles-fill", "circles-glow", "circles-line", "unc-ring", "ripple-a", "ripple-b"];
 type NumMap = globalThis.Map<string, number>;
+
+/** Short stable id for the scenario on screen, so a claim is tied to exactly this event. */
+function scenarioId(req: unknown): string {
+  const s = JSON.stringify(req);
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return `sim-${(h >>> 0).toString(36)}`;
+}
 
 export default function CommandCentrePage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const wantedFarm = searchParams.get("farm");
+  const wantedApplied = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -67,7 +78,7 @@ export default function CommandCentrePage() {
   const [selectedSensorId, setSelectedSensorId] = useState<string | null>(null);
   const [is3D, setIs3D] = useState(true);
   const [placingStorm, setPlacingStorm] = useState(false);
-  const [layers, setLayers] = useState({ circles: true, sensors: true, links: true, ripples: true });
+  const [layers, setLayers] = useState({ circles: true, sensors: true, links: true, ripples: true, uncertainty: true });
   const [layersOpen, setLayersOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [fCrop, setFCrop] = useState("");
@@ -177,6 +188,10 @@ export default function CommandCentrePage() {
       map.addLayer({ id: "circles-fill", type: "fill", source: "circles", paint: { "fill-color": "#22d3ee", "fill-opacity": 0.07 } });
       map.addLayer({ id: "circles-glow", type: "line", source: "circles", paint: { "line-color": "#22d3ee", "line-width": 5, "line-blur": 4, "line-opacity": 0.25 } });
       map.addLayer({ id: "circles-line", type: "line", source: "circles", paint: { "line-color": "#67e8f9", "line-width": 1.2, "line-opacity": 0.8 } });
+      // Uncertainty halo: thicker and warmer (green → amber → red) the less certain that farm's estimate is.
+      map.addLayer({ id: "unc-ring", type: "line", source: "circles", paint: {
+        "line-width": ["get", "unc_px"], "line-blur": 1.5, "line-opacity": 0.55,
+        "line-color": ["interpolate", ["linear"], ["get", "rel"], 0, "#34d399", 0.5, "#fbbf24", 1, "#f87171"] } });
 
       // Each farm is styled by its OWN rainfall: colour by risk, opacity and height by estimate.
       map.addLayer({ id: "farms-fill", type: "fill", source: "farms", paint: {
@@ -185,6 +200,12 @@ export default function CommandCentrePage() {
       map.addLayer({
         id: "farms-3d", type: "fill-extrusion", source: "farms", layout: { visibility: "none" },
         paint: { "fill-extrusion-color": ["get", "colour"], "fill-extrusion-height": ["get", "height"], "fill-extrusion-base": 0, "fill-extrusion-opacity": 0.85 },
+      });
+
+      // Uncertainty band (3D): translucent column spanning the low-to-high estimate above each block.
+      map.addLayer({
+        id: "farms-band", type: "fill-extrusion", source: "farms", layout: { visibility: "none" },
+        paint: { "fill-extrusion-color": "#e0f2fe", "fill-extrusion-base": ["get", "lowH"], "fill-extrusion-height": ["get", "upH"], "fill-extrusion-opacity": 0.35 },
       });
 
       const ripple = (id: string) => map.addLayer({
@@ -285,6 +306,12 @@ export default function CommandCentrePage() {
 
   const crops = useMemo(() => Array.from(new Set(farms.map((f) => f.crop).filter(Boolean))) as string[], [farms]);
 
+  // Open directly on a farm when linked with ?farm=<id> (from Policies or the farmer page).
+  useEffect(() => {
+    if (!wantedFarm || wantedApplied.current || !result) return;
+    if (farms.some((f) => f.farm_id === wantedFarm)) { wantedApplied.current = true; setSelectedFarmId(wantedFarm); }
+  }, [wantedFarm, result, farms]);
+
   // ── Push data into the map ───────────────────────────────────────────────
   useEffect(() => {
     const map = mapRef.current;
@@ -325,6 +352,8 @@ export default function CommandCentrePage() {
     if (!map || !mapReady) return;
     const vis = (ids: string[], on: boolean) => ids.forEach((id) => map.getLayer(id) && map.setLayoutProperty(id, "visibility", on ? "visible" : "none"));
     vis(["circles-fill", "circles-glow", "circles-line"], layers.circles);
+    vis(["unc-ring"], layers.uncertainty);
+    vis(["farms-band"], layers.uncertainty && is3D);
     vis(["ripple-a", "ripple-b"], layers.ripples);
     vis(["sensors-circle", "sensor-ring"], layers.sensors);
     vis(["towers"], layers.sensors && is3D);
@@ -375,6 +404,7 @@ export default function CommandCentrePage() {
     return farms.filter((f) => [f.farm_id, f.name, f.farmer_label, String(f.farmer_id ?? "")].some((v) => v.toLowerCase().includes(q))).slice(0, 6);
   }, [search, farms]);
 
+  const eventId = useMemo(() => scenarioId(request), [request]);
   const sum = result?.summary;
   const dLiab = sum && prevSummary ? sum.total_liability - prevSummary.total_liability : 0;
 
@@ -443,7 +473,7 @@ export default function CommandCentrePage() {
             </div>
             {layersOpen && (
               <div className="rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md p-3 space-y-1.5 text-xs text-gray-200">
-                {([["circles", "Rainfall coverage circles"], ["ripples", "Rain ripples on each plot"], ["sensors", "Sensors"], ["links", "Evidence links (selected farm)"]] as const).map(([k, label]) => (
+                {([["circles", "Rainfall coverage circles"], ["ripples", "Rain ripples on each plot"], ["uncertainty", "Uncertainty (halo + 3D band)"], ["sensors", "Sensors"], ["links", "Evidence links (selected farm)"]] as const).map(([k, label]) => (
                   <label key={k} className="flex items-center gap-2"><input type="checkbox" checked={layers[k]} onChange={() => setLayers((l) => ({ ...l, [k]: !l[k] }))} />{label}</label>
                 ))}
               </div>
@@ -463,6 +493,11 @@ export default function CommandCentrePage() {
               <span><i className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1" />faulty</span>
               <span className="text-cyan-300">◯ coverage zone</span>
             </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <span>Uncertainty halo:</span>
+              <i className="inline-block h-1.5 w-16 rounded-full" style={{ background: "linear-gradient(90deg,#34d399,#fbbf24,#f87171)" }} />
+              <span>thin/green = sure → thick/red = unsure</span>
+            </div>
             <p className="text-gray-500">Unmarked ground is land no farmer has registered yet.</p>
           </div>
 
@@ -476,7 +511,7 @@ export default function CommandCentrePage() {
 
           {selectedFarm && (
             <FarmPanel farm={selectedFarm} prevPayout={prevPayout.get(selectedFarm.farm_id)} role={user?.role} series={series}
-              tl={tl} onAdjust={setAdjust} onClose={() => setSelectedFarmId(null)} />
+              tl={tl} eventId={eventId} onAdjust={setAdjust} onClose={() => setSelectedFarmId(null)} />
           )}
         </div>
 

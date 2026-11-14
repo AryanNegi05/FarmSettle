@@ -81,7 +81,7 @@ export const DEFAULT_LAYER_VISIBILITY: LayerVisibility = {
 
 interface MapViewProps {
   centreOnFarm?: { lat: number; lng: number; zoom?: number } | null;
-  initialSelectedFarmId?: number | null;
+  initialSelectedFarmId?: string | number | null;
   height?: string;
   /** Start in the tilted 3D terrain view. */
   default3D?: boolean;
@@ -682,7 +682,7 @@ export default function MapView({
 
   // ── Farm detail helpers ───────────────────────────────────────────────────
 
-  const openFarmDetail = useCallback((farmId: number) => {
+  const openFarmDetail = useCallback((farmId: string | number) => {
     setDetailLoading(true);
     setSelectedFarm(null);
     setSelectedImage(farmImages.current[String(farmId)] ?? null);

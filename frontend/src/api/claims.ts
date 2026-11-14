@@ -52,3 +52,4 @@ export const decideClaim = (id: string, action: "approve" | "hold" | "reject" | 
   apiFetch<Claim>(`/claims/${id}/decision`, { method: "POST", body: { action, reason } });
 export const payClaim = (id: string) =>
   apiFetch<{ claim: Claim; payment: Payment; created: boolean }>(`/claims/${id}/pay`, { method: "POST" });
+export const getClaim = (id: string) => apiFetch<Claim>(`/claims/${id}`);

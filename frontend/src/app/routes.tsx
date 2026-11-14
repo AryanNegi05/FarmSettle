@@ -138,6 +138,14 @@ export default function AppRoutes() {
         }
       />
       <Route
+        path="/insurer/policies/:policyId/edit"
+        element={
+          <ProtectedRoute allowedRoles={["insurer", "admin"]}>
+            <PolicyFormPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/insurer/map"
         element={
           <ProtectedRoute allowedRoles={["insurer", "admin", "auditor"]}>

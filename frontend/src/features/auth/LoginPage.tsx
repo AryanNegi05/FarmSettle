@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { canVisit, homeFor } from "../shared/nav";
 
 const DEMO_ACCOUNTS = [
   { label: "🌾 Farmer", email: "farmer@paratrust.dev", pass: "farmer123" },
@@ -12,6 +13,9 @@ const DEMO_ACCOUNTS = [
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // If a protected page sent us here, return to it after signing in (when this role may open it).
+  const from = (location.state as { from?: string } | null)?.from;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -22,7 +26,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const role = await login(eMail, pass);
-      navigate(`/${role}`);
+      navigate(from && canVisit(role, from) ? from : homeFor(role), { replace: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

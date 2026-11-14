@@ -162,7 +162,9 @@ Every farmer registers on the same bundled farmland image, so the "district" the
 - **Sensors:** seeded and well spread across the land (Halton sequence with a seeded rotation; changing the count keeps earlier gauges where they are), colour by health, pulsing rings, towers in 3D, evidence lines to the selected farm's contributing sensors, and excluded/down-weighted sensors listed with reasons.
 - **Simulation panel:** six presets resolved from the land and farms, district slider, localised storm (intensity, radius in metres, click-to-place), sensor count, fault injection, per-sensor override, play/pause/reset and the storm timeline.
 - **Portfolio KPIs:** occupied land (ha and % of the patch), affected farms, eligible claims, payout liability with change vs previous, average per affected farm, claims needing investigation, false payouts prevented, faulty/suspicious sensors, flood score.
-- **Insurer interaction:** click/hover a farm, search by farmer ID, name or farm ID, filters (crop, risk, claim outcome, minimum rainfall), layer toggles, "Send to Claims Review" (confirmation first; a person decides there).
+- **Uncertainty on the map:** each farm's coverage circle gets a halo whose thickness and colour (green → amber → red) show how uncertain that farm's estimate is, and in 3D a translucent band spans the low-to-high (80 %) estimate above its block. Toggle: Layers → Uncertainty.
+- **Insurer decisions in the farm panel:** for a farm with a policy, a person creates the claim record for the scenario on screen, types a reason, and approves, rejects, requests investigation or places the claim on hold, with a confirmation each time. The claim is tied to the scenario (id = farm + scenario + policy, so repeating the same scenario finds the same record), shows its status and history, and warns if rainfall has changed since it was created. Only insurer/admin can decide; auditors see it read-only. Payments stay in Claims Review.
+- **Insurer interaction:** click/hover a farm, search by farmer ID, name or farm ID, filters (crop, risk, claim outcome, minimum rainfall), layer toggles.
 - **Tests:** `test_command_centre.py` (19), `test_zones.py` (7), plus the claim and payment tests: 50 pass.
 
 ### Model fixes made on the way (Stage 5 LightGBM)
@@ -173,7 +175,6 @@ Every farmer registers on the same bundled farmland image, so the "district" the
 ### Not built yet / known gaps
 - Only one real farm exists, and it has no policy, so real payouts show once farmers register more farms and the insurer creates policies. (Browser checks used recorded evaluator output with five extra test farms, not saved data.)
 - At 856 m, rain is nearly uniform in reality; the localised storm is a demo of spatial variation and basis risk, not a physical model.
-- Uncertainty is shown as a range bar and numbers, not a map band.
 - Rainfall is compared with policy triggers in mm/hr (prototype assumption); ERA5 background rainfall is not fed into this evaluator; flood probability is an indicative blend, not a hydrological model.
 - Each evaluation response is large (farm rings and circles); fine on localhost.
-- Not exercised: the page with a real insurer login, the Claims Review hand-off from the farm panel, and sensor towers in 3D at close range.
+- Not exercised: the page with a real insurer login (the decision box and map bands were checked in a browser against recorded evaluator output and a mocked claims API; the claims endpoints themselves were verified earlier against Firestore), and sensor towers in 3D at close range.

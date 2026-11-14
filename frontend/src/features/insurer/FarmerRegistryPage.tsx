@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "../shared/PageLayout";
-import { searchFarmers, FarmerSummary, syncAllToFirestore } from "../../api/stage2";
+import { searchFarmers, FarmerSummary } from "../../api/stage2";
 
 export default function FarmerRegistryPage() {
   const navigate = useNavigate();
@@ -9,8 +9,6 @@ export default function FarmerRegistryPage() {
   const [farmers, setFarmers] = useState<FarmerSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
-  const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
   const load = useCallback((q: string) => {
     setLoading(true);
@@ -28,26 +26,12 @@ export default function FarmerRegistryPage() {
     load(query);
   }
 
-  const handleSyncToFirebase = async () => {
-    setSyncing(true);
-    setSyncMsg(null);
-    try {
-      const res = await syncAllToFirestore();
-      setSyncMsg(`Successfully synced ${res.farmers} farmers and ${res.policies} policies to Firebase!`);
-      load(query);
-    } catch (err: unknown) {
-      setSyncMsg(err instanceof Error ? err.message : "Failed to sync to Firebase");
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   return (
-    <PageLayout title="Farmer Registry" subtitle="Search and manage registered farmers (Firebase Firestore backed)" backTo="/insurer">
+    <PageLayout title="Farmer Registry" subtitle="Registered farmers, their farms and policies" backTo="/insurer">
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <form onSubmit={handleSearch} className="flex gap-3 max-w-md flex-1">
           <input
-            className="flex-1 bg-navy-900 border border-navy-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-brand-blue"
+            className="flex-1 bg-navy border border-navy-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-brand-blue"
             placeholder="Search by name, email, or district…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -60,23 +44,7 @@ export default function FarmerRegistryPage() {
           </button>
         </form>
 
-        <button
-          type="button"
-          onClick={handleSyncToFirebase}
-          disabled={syncing}
-          className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs px-3 py-2 rounded-lg font-medium transition disabled:opacity-50"
-          title="Push all backend farmers to Firebase Firestore"
-        >
-          🔥 {syncing ? "Syncing..." : "Sync to Firebase"}
-        </button>
       </div>
-
-      {syncMsg && (
-        <div className="bg-amber-900/30 border border-amber-700/50 text-amber-200 rounded-lg px-4 py-2.5 text-xs flex items-center justify-between">
-          <span>🔥 {syncMsg}</span>
-          <button onClick={() => setSyncMsg(null)} className="text-gray-400 hover:text-white ml-2">✕</button>
-        </div>
-      )}
 
       {loading && <p className="text-gray-400">Loading…</p>}
       {error && (

@@ -108,6 +108,6 @@ export async function getFarmsGeo(): Promise<FeatureCollection> {
   return apiFetch<FeatureCollection>("/geo/farms");
 }
 
-export async function getFarmDetail(farmId: number): Promise<FarmMapDetail> {
+export async function getFarmDetail(farmId: string | number): Promise<FarmMapDetail> {
   return apiFetch<FarmMapDetail>(`/geo/farms/${farmId}`);
 }

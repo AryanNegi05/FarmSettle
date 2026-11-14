@@ -11,7 +11,11 @@ export const SENSOR_COLOUR: Record<string, string> = { healthy: "#22d3ee", suspi
 type FC = GeoJSON.FeatureCollection;
 const fc = (features: GeoJSON.Feature[]): FC => ({ type: "FeatureCollection", features });
 
-/** Farm polygons. Height and opacity come from THAT farm's own rainfall, so each plot looks different. */
+/** Extrusion height (m) for a rainfall value; shared by the farm block and its uncertainty band. */
+const rainHeight = (v: number) => 3 + Math.min(Math.max(v, 0), 120) * 0.3;
+
+/** Farm polygons. Height and opacity come from THAT farm's own rainfall, so each plot looks different.
+ *  lowH/upH bound the 80 % uncertainty range, drawn as a translucent band above the block in 3D. */
 export function farmFeatures(farms: CCFarm[], prevPayout: Map<string, number>): FC {
   return fc(farms.map((f) => {
     const est = f.estimated_rainfall ?? 0;
@@ -20,7 +24,9 @@ export function farmFeatures(farms: CCFarm[], prevPayout: Map<string, number>): 
       geometry: { type: "Polygon", coordinates: [f.ring] },
       properties: {
         farm_id: f.farm_id, name: f.name, crop: f.crop ?? "", risk: f.risk, colour: RISK_COLOUR[f.risk],
-        height: 3 + Math.min(est, 120) * 0.3, est, payout: f.claim?.recommended_amount ?? 0,
+        height: rainHeight(est), est,
+        lowH: f.lower === null ? 0 : rainHeight(f.lower), upH: f.upper === null ? 0 : rainHeight(f.upper),
+        payout: f.claim?.recommended_amount ?? 0,
         prev: prevPayout.get(f.farm_id) ?? 0, outcome: f.claim?.outcome ?? "NONE",
       },
     };
@@ -31,7 +37,12 @@ export function circleFeatures(farms: CCFarm[]): FC {
   return fc(farms.map((f) => ({
     type: "Feature",
     geometry: { type: "Polygon", coordinates: [f.circle] },
-    properties: { farm_id: f.farm_id, radius_m: f.circle_radius_m },
+    // rel = how uncertain the estimate is relative to its size; drives the halo's thickness and colour.
+    properties: {
+      farm_id: f.farm_id, radius_m: f.circle_radius_m,
+      rel: Math.min(1.5, (f.uncertainty ?? 0) / Math.max(f.estimated_rainfall ?? 0, 5)),
+      unc_px: 2 + 12 * Math.min(1, (f.uncertainty ?? 0) / Math.max(f.estimated_rainfall ?? 0, 5)),
+    },
   })));
 }
 

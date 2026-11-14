@@ -21,7 +21,7 @@ export interface FarmerProfileCreate {
 }
 
 export interface FarmerProfileOut {
-  id: number;
+  id: string;
   user_id: number;
   phone: string | null;
   address: string | null;
@@ -37,8 +37,8 @@ export interface CropCreate {
 }
 
 export interface CropOut {
-  id: number;
-  farm_id: number;
+  id: string;
+  farm_id: string;
   crop_type: string;
   season: string | null;
   area_hectares: number | null;
@@ -54,8 +54,8 @@ export interface FarmCreate {
 }
 
 export interface FarmOut {
-  id: number;
-  farmer_profile_id: number;
+  id: string;
+  farmer_profile_id: string;
   name: string;
   area_hectares: number | null;
   latitude: number | null;
@@ -74,8 +74,8 @@ export interface BankAccountCreate {
 }
 
 export interface BankAccountOut {
-  id: number;
-  farmer_profile_id: number;
+  id: string;
+  farmer_profile_id: string;
   account_holder_name: string;
   masked_account_number: string;
   bank_name: string | null;
@@ -87,8 +87,8 @@ export interface BankAccountOut {
 
 export interface PolicyCreate {
   policy_number: string;
-  farm_id: number;
-  farmer_profile_id: number;
+  farm_id: string;
+  farmer_profile_id: string;
   coverage_start: string;
   coverage_end: string;
   sum_insured: number;
@@ -103,19 +103,23 @@ export interface PolicyUpdate {
   coverage_start?: string;
   coverage_end?: string;
   sum_insured?: number;
-  rainfall_trigger_mm?: number;
-  rainfall_max_payout_mm?: number;
-  flood_trigger_level?: number;
-  payout_limit?: number;
+  // null clears an optional value
+  rainfall_trigger_mm?: number | null;
+  rainfall_max_payout_mm?: number | null;
+  flood_trigger_level?: number | null;
+  payout_limit?: number | null;
   status?: string;
 }
 
 export interface PolicyOut {
-  id: number;
+  id: string;
   policy_number: string;
-  farm_id: number;
-  farmer_profile_id: number;
-  insurer_id: number;
+  farm_id: string;
+  farmer_profile_id: string;
+  insurer_firebase_uid: string;
+  farm_name?: string | null;
+  farmer_name?: string | null;
+  farmer_email?: string | null;
   coverage_start: string;
   coverage_end: string;
   sum_insured: number;
@@ -199,43 +203,28 @@ export async function submitBankAccount(data: BankAccountCreate): Promise<BankAc
 }
 
 // Policies (insurer)
-export async function listPolicies(farmerId?: number): Promise<PolicyOut[]> {
+export async function listPolicies(farmerId?: string | number): Promise<PolicyOut[]> {
+  // The backend is the source of truth (it also adds farmer and farm names).
   try {
-    const fsPolicies = await getPoliciesFromFirestore(farmerId);
-    if (fsPolicies && fsPolicies.length > 0) {
-      return fsPolicies;
-    }
+    const qs = farmerId !== undefined ? `?farmer_id=${farmerId}` : "";
+    return await apiFetch<PolicyOut[]>(`/policies/${qs}`);
   } catch (err) {
-    console.warn("Firestore fetch error, falling back to backend:", err);
+    console.warn("Backend policy list failed, falling back to Firestore:", err);
+    return getPoliciesFromFirestore(farmerId);
   }
+}
 
-  const qs = farmerId !== undefined ? `?farmer_id=${farmerId}` : "";
-  const backendPolicies = await apiFetch<PolicyOut[]>(`/policies/${qs}`);
-
-  // Sync to Firestore in background
-  backendPolicies.forEach((p) => {
-    savePolicyToFirestore(p).catch(() => {});
-  });
-
-  return backendPolicies;
+export async function getPolicy(id: string | number): Promise<PolicyOut> {
+  return apiFetch<PolicyOut>(`/policies/${id}`);
 }
 
 export async function createPolicy(data: PolicyCreate): Promise<PolicyOut> {
-  const policy = await apiFetch<PolicyOut>("/policies/", { method: "POST", body: data });
-  // Save directly to Firebase Firestore
-  await savePolicyToFirestore(policy).catch((err) => {
-    console.warn("Failed to save policy to Firestore:", err);
-  });
-  return policy;
+  // The backend writes the policy to Firestore itself; no second write from the browser.
+  return apiFetch<PolicyOut>("/policies/", { method: "POST", body: data });
 }
 
-export async function updatePolicy(id: number, data: PolicyUpdate): Promise<PolicyOut> {
-  const policy = await apiFetch<PolicyOut>(`/policies/${id}`, { method: "PATCH", body: data });
-  // Update in Firebase Firestore
-  await updatePolicyInFirestore(id, data).catch((err) => {
-    console.warn("Failed to update policy in Firestore:", err);
-  });
-  return policy;
+export async function updatePolicy(id: string | number, data: PolicyUpdate): Promise<PolicyOut> {
+  return apiFetch<PolicyOut>(`/policies/${id}`, { method: "PATCH", body: data });
 }
 
 // Admin / insurer farmer search

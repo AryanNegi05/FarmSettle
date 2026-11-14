@@ -181,3 +181,15 @@ def test_faulty_gauge_preset_flags_only_the_injected_faults(farms):
     r = run(farms, district_mm_hr=p["district_mm_hr"], faults=p["faults"])
     flagged = {s["id"] for s in r["sensors"] if s["status"] == "faulty"}
     assert flagged == set(p["faults"])
+
+
+def test_map_payout_equals_claim_engine_run_on_the_displayed_numbers(farms):
+    """A claim created from what the insurer sees must match the amount shown on the map."""
+    from app.services import claims as ce
+    for mm in (22.0, 38.0, 55.0):
+        r = run(farms, district_mm_hr=mm)
+        for f in r["farms"]:
+            pol = next(x for x in farms if x["farm_id"] == f["farm_id"])["policy"]
+            again = ce.calculate_claim(pol, event_id="x", event_date=date.today(), estimated_rainfall_mm=f["estimated_rainfall"],
+                                       rainfall_sigma_mm=f["uncertainty"], sensor_trust=f["sensor_confidence"])
+            assert again.recommended_amount == f["claim"]["recommended_amount"]

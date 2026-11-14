@@ -146,6 +146,10 @@ class PolicyOut(BaseModel):
     payout_limit: Optional[float] = None
     status: str
     created_at: datetime
+    # Display names so lists don't need extra lookups (filled in by the API, not stored).
+    farm_name: Optional[str] = None
+    farmer_name: Optional[str] = None
+    farmer_email: Optional[str] = None
     rules: List[PolicyRuleOut] = []
 
     model_config = {"from_attributes": True}

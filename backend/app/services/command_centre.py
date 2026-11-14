@@ -353,9 +353,12 @@ def evaluate(controls: Controls, farms: Optional[list[dict[str, Any]]] = None,
         policy = f["policy"]
         calc = None
         if policy and est is not None:
+            # Use exactly the rounded numbers shown to the insurer (and later sent back when a claim record
+            # is created), so the amount on the map always equals the amount in the saved claim.
             calc = claim_engine.calculate_claim(
-                policy, event_id=EVENT_ID, event_date=date.today(), estimated_rainfall_mm=est,
-                rainfall_sigma_mm=sigma or 0.0, sensor_trust=mean_trust)
+                policy, event_id=EVENT_ID, event_date=date.today(), estimated_rainfall_mm=round(est, 2),
+                rainfall_sigma_mm=round(sigma or 0.0, 2),
+                sensor_trust=None if mean_trust is None else round(mean_trust, 3))
             naive_pay = _sev_payable(policy, naive_val)
             naive_total += naive_pay
             engine_total += calc.recommended_amount

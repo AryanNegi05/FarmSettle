@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { homeFor } from "../shared/nav";
 import { UserRole } from "../../api/auth";
 
 const AVAILABLE_ROLES: { value: UserRole; label: string; desc: string }[] = [
@@ -24,7 +25,7 @@ export default function RegisterPage() {
     try {
       await register(form);
       const role = await login(form.email, form.password);
-      navigate(`/${role}`);
+      navigate(homeFor(role), { replace: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {

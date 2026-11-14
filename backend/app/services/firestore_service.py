@@ -350,8 +350,15 @@ class FirestoreService:
     # INSURANCE POLICIES
     # ═══════════════════════════════════════════════════════════════════════════
     
+    @staticmethod
+    def _firestore_safe(data: Dict[str, Any]) -> Dict[str, Any]:
+        """Firestore cannot store datetime.date; keep calendar dates as ISO strings (YYYY-MM-DD)."""
+        from datetime import date as _date
+        return {k: (v.isoformat() if isinstance(v, _date) and not isinstance(v, datetime) else v) for k, v in data.items()}
+
     def create_policy(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Create an insurance policy."""
+        data = self._firestore_safe(data)
         policy_data = {
             "policy_number": data.get("policy_number"),
             "farm_id": data.get("farm_id"),
@@ -422,7 +429,7 @@ class FirestoreService:
     def update_policy(self, policy_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Update a policy."""
         doc_ref = self.db.collection("policies").document(policy_id)
-        doc_ref.update(data)
+        doc_ref.update(self._firestore_safe(data))
         
         updated = doc_ref.get().to_dict()
         updated["id"] = policy_id

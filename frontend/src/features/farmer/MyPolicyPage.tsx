@@ -80,8 +80,8 @@ export default function MyPolicyPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const getPoliciesForFarm = (farmId: number) =>
-    policies.filter((p) => p.farm_id === farmId);
+  const getPoliciesForFarm = (farmId: string | number) =>
+    policies.filter((p) => String(p.farm_id) === String(farmId));
 
   return (
     <PageLayout title="My Policy" subtitle="Insurance coverage for your farms" backTo="/farmer">

@@ -9,6 +9,28 @@ from app.services.firestore_service import firestore_service
 
 # ── Policy router ─────────────────────────────────────────────────────────────
 
+def _enrich(policies: list[dict]) -> list[dict]:
+    """Attach farm_name / farmer_name / farmer_email for display (looked up once per distinct id)."""
+    farms: dict = {}
+    profiles: dict = {}
+    users: dict = {}
+    for p in policies:
+        fid, pid = p.get("farm_id"), p.get("farmer_profile_id")
+        if fid and fid not in farms:
+            farms[fid] = firestore_service.get_farm_by_id(fid)
+        if pid and pid not in profiles:
+            profiles[pid] = firestore_service.get_farmer_profile_by_id(pid)
+        uid = (profiles.get(pid) or {}).get("firebase_uid")
+        if uid and uid not in users:
+            u = get_firestore_db().collection("users").document(uid).get()
+            users[uid] = (u.to_dict() or {}) if u.exists else {}
+        user = users.get(uid) or {}
+        p["farm_name"] = (farms.get(fid) or {}).get("name")
+        p["farmer_name"] = user.get("full_name") or (user.get("email") or "").split("@")[0] or None
+        p["farmer_email"] = user.get("email")
+    return policies
+
+
 router = APIRouter(prefix="/api/policies", tags=["policies"])
 
 
@@ -19,6 +41,8 @@ async def create_policy(
     current_user=Depends(require_role(UserRole.insurer, UserRole.admin)),
 ):
     """Create a new insurance policy."""
+    if body.coverage_end < body.coverage_start:
+        raise HTTPException(status_code=422, detail="Coverage end date must be on or after the start date")
     # Check if policy number already exists
     existing = firestore_service.get_policy_by_number(body.policy_number)
     if existing:
@@ -29,7 +53,8 @@ async def create_policy(
     policy_data["insurer_firebase_uid"] = current_user.uid
     
     policy = firestore_service.create_policy(policy_data)
-    
+    _enrich([policy])
+
     # Add empty rules list for response
     policy["rules"] = []
     return policy
@@ -52,10 +77,11 @@ async def list_policies(
     else:
         policies = firestore_service.list_all_policies()
     
-    # Add rules to each policy
+    # Add rules and display names to each policy
     for policy in policies:
         policy["rules"] = firestore_service.list_rules_by_policy(policy["id"])
-    
+    _enrich(policies)
+
     return policies
 
 
@@ -72,11 +98,12 @@ async def list_policies_for_farmer(
             raise HTTPException(status_code=403, detail="Access denied")
     
     policies = firestore_service.list_policies_by_profile(farmer_profile_id)
-    
-    # Add rules to each policy
+
+    # Add rules and display names to each policy
     for policy in policies:
         policy["rules"] = firestore_service.list_rules_by_policy(policy["id"])
-    
+    _enrich(policies)
+
     return policies
 
 
@@ -96,8 +123,9 @@ async def get_policy(
         if not profile or policy["farmer_profile_id"] != profile["id"]:
             raise HTTPException(status_code=403, detail="Access denied")
     
-    # Add rules to policy
+    # Add rules and display names to policy
     policy["rules"] = firestore_service.list_rules_by_policy(policy["id"])
+    _enrich([policy])
     return policy
 
 
@@ -113,10 +141,15 @@ async def update_policy(
         raise HTTPException(status_code=404, detail="Policy not found")
     
     update_data = body.model_dump(exclude_unset=True)
+    start = update_data.get("coverage_start") or policy.get("coverage_start")
+    end = update_data.get("coverage_end") or policy.get("coverage_end")
+    if start and end and str(end)[:10] < str(start)[:10]:
+        raise HTTPException(status_code=422, detail="Coverage end date must be on or after the start date")
     updated_policy = firestore_service.update_policy(policy_id, update_data)
     
-    # Add rules to policy
+    # Add rules and display names to policy
     updated_policy["rules"] = firestore_service.list_rules_by_policy(policy_id)
+    _enrich([updated_policy])
     return updated_policy
 
 
@@ -220,7 +253,8 @@ async def get_farmer_detail(
     policies = firestore_service.list_policies_by_profile(profile["id"])
     for policy in policies:
         policy["rules"] = firestore_service.list_rules_by_policy(policy["id"])
-    
+    _enrich(policies)
+
     return FarmerDetail(
         id=profile["id"],
         firebase_uid=profile["firebase_uid"],

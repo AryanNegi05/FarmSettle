@@ -22,22 +22,23 @@ import type {
 
 // ── Policies ──────────────────────────────────────────────────────────────────
 
-export async function getPoliciesFromFirestore(farmerId?: number): Promise<PolicyOut[]> {
+export async function getPoliciesFromFirestore(farmerId?: string | number): Promise<PolicyOut[]> {
   const colRef = collection(db, "policies");
   let q = colRef;
   if (farmerId !== undefined) {
-    q = query(colRef, where("farmer_profile_id", "==", farmerId)) as any;
+    q = query(colRef, where("farmer_profile_id", "==", String(farmerId))) as any;
   }
   const snap = await getDocs(q);
   const results: PolicyOut[] = [];
   snap.forEach((d) => {
     const data = d.data();
     results.push({
-      id: typeof data.id === "number" ? data.id : parseInt(d.id, 10) || 1,
+      // Ids are Firestore document ids (strings); never coerce them to numbers.
+      id: d.id,
       policy_number: data.policy_number || d.id,
-      farm_id: Number(data.farm_id) || 0,
-      farmer_profile_id: Number(data.farmer_profile_id) || 0,
-      insurer_id: Number(data.insurer_id) || 1,
+      farm_id: String(data.farm_id ?? ""),
+      farmer_profile_id: String(data.farmer_profile_id ?? ""),
+      insurer_firebase_uid: String(data.insurer_firebase_uid ?? ""),
       coverage_start: data.coverage_start || "",
       coverage_end: data.coverage_end || "",
       sum_insured: Number(data.sum_insured) || 0,
@@ -60,7 +61,7 @@ export async function savePolicyToFirestore(policy: PolicyOut): Promise<void> {
   }, { merge: true });
 }
 
-export async function updatePolicyInFirestore(id: number, data: PolicyUpdate): Promise<void> {
+export async function updatePolicyInFirestore(id: string | number, data: PolicyUpdate): Promise<void> {
   const docRef = doc(db, "policies", String(id));
   await updateDoc(docRef, {
     ...data,
@@ -111,19 +112,19 @@ export async function saveFarmerToFirestore(farmer: FarmerSummary): Promise<void
 
 // ── Farms ─────────────────────────────────────────────────────────────────────
 
-export async function getFarmsFromFirestore(farmerProfileId?: number): Promise<FarmOut[]> {
+export async function getFarmsFromFirestore(farmerProfileId?: string | number): Promise<FarmOut[]> {
   const colRef = collection(db, "farms");
   let q = colRef;
   if (farmerProfileId !== undefined) {
-    q = query(colRef, where("farmer_profile_id", "==", farmerProfileId)) as any;
+    q = query(colRef, where("farmer_profile_id", "==", String(farmerProfileId))) as any;
   }
   const snap = await getDocs(q);
   const results: FarmOut[] = [];
   snap.forEach((d) => {
     const data = d.data();
     results.push({
-      id: typeof data.id === "number" ? data.id : parseInt(d.id, 10) || 1,
-      farmer_profile_id: Number(data.farmer_profile_id) || 0,
+      id: d.id,
+      farmer_profile_id: String(data.farmer_profile_id ?? ""),
       name: data.name || "Farm Plot",
       area_hectares: data.area_hectares != null ? Number(data.area_hectares) : null,
       latitude: data.latitude != null ? Number(data.latitude) : null,
