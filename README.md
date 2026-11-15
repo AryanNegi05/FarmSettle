@@ -6,13 +6,15 @@ Agentic climate insurance intelligence & financial risk platform (B2B2C). All pa
 
 ```
 backend/    FastAPI service (Firebase Auth + Firestore, Cloudinary for images)
-  app/api         HTTP routes (auth, farmers, policies, geo, sensors, simulation, risk)
+  app/api         HTTP routes (auth, farmers, policies, geo, sensors, simulation, risk, claims,
+                  command, agents, basis_risk, backtest, premium, my_claims)
   app/core        config, Firebase auth, role dependencies
   app/schemas     Pydantic schemas
   app/services    firestore, cloudinary, geo, simulation, fault_detection (LightGBM),
-                  risk (GP/Kriging), era5_loader
+                  risk (GP/Kriging), era5_loader, command_centre, claims, basis_risk,
+                  sensor_forensics, disputes, payments, rwbcis_backtest, agents/
 frontend/   React + TypeScript + Vite + MapLibre GL
-  src/features    auth, farmer, insurer, auditor, map, simulation, sensors, risk
+  src/features    auth, farmer, insurer, auditor, admin, map, simulation, sensors, risk, landing
 docs/       roadmap and per-stage notes (docs/stages/)
 ```
 
@@ -53,13 +55,20 @@ Roles: farmer, insurer, auditor, admin. Demo insurer/auditor/admin accounts are 
 | 4 | Weather & flood simulation | ✅ Complete |
 | 5 | Sensor fault detection & trust scoring (LightGBM) | ✅ Complete |
 | 6 | Farm-level risk assessment (GP/Kriging, ERA5) | ✅ Complete |
-| 7 | Four AI agents (LangGraph) | ⬜ Not started |
+| 7 | Four AI agents | 🟡 Built (`/insurer/agents`, `backend/app/services/agents`) |
 | 8 | Claim calculation (deterministic engine, approvals) | ✅ Backend complete |
 | 9 | Insurer claims review & simulated payments | 🟡 Core flow built (`/insurer/claims`) |
-| 10–12 | Farmer tracking, audit, integration & demo | ⬜ Not started |
+| 10–12 | Farmer tracking, audit, integration & demo | 🟡 Farmer claim views and disputes built; audit and demo polish pending |
 | 13 | Farm-level 3D monitoring & rainfall simulation | 🟡 First version built (`/insurer/command`) — [spec & status](docs/stages/13-farm-level-3d-monitoring.md) |
+| 14 | Basis risk monitor & sensor forensics | 🟡 Built (`/insurer/basis-risk`, Command Centre sensor panel) — [notes](docs/stages/14-basis-risk-and-sensor-forensics.md) |
 
 Stage notes: [docs/stages/](docs/stages/)
+
+## Recent additions
+- **Basis Risk Monitor** (`/insurer/basis-risk`): per-farm indicators of possible under- or over-compensation. Indicators only, never proof; they never create or change a claim.
+- **Sensor Forensics Workbench**: click any sensor in the Command Centre for its history, neighbour comparison, rule-based anomaly markers and LightGBM feature contributions.
+- **Backtesting** (`/insurer/backtest`), **premium** pricing, **disputes**, and farmer-side claim views (`/farmer/claims`) with farmer loss reports.
+- Weather and sensors are simulated; all payments are simulated.
 
 ## What was added after Stage 6
 
@@ -87,6 +96,6 @@ Stage notes: [docs/stages/](docs/stages/)
 - Registration happens in the browser (Firebase Auth + Firestore); the backend does not see it.
 
 ## Next phase
-Stage 13 — farm-level 3D insurance monitoring, per-farm rainfall coverage circles, seeded random sensor network, interactive rainfall simulation and live payout updates. See [docs/stages/13-farm-level-3d-monitoring.md](docs/stages/13-farm-level-3d-monitoring.md).
+Finish stages 10–12 (audit, financial reconciliation, integration and demo) and harden Firestore rules for deployment.
 
 Full plan: [docs/ROADMAP.md](docs/ROADMAP.md) · Stage notes: [docs/stages/](docs/stages/)
