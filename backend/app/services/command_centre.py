@@ -249,7 +249,14 @@ def _load_real_farms() -> list[dict[str, Any]]:
             crop = None
             if crops:
                 crop = sorted(crops, key=lambda c: c.get("area_hectares") or 0, reverse=True)[0].get("crop_type")
-            out.append({**f, "_policy": policies.get(f["id"]), "_crop": crop, "_farmer_name": names.get(uid)})
+            pol = policies.get(f["id"])
+            # Amounts already approved/paid on this policy count against its cap, exactly as the claim
+            # engine and the agents treat them, so the map's liability equals what is still payable.
+            paid = 0.0
+            if pol:
+                paid = sum(float(c.get("recommended_amount") or 0) for c in fs.list_claims_by_policy(pol["id"])
+                           if claim_engine.is_committed(c))
+            out.append({**f, "_policy": pol, "_crop": crop, "_farmer_name": names.get(uid), "_paid": paid})
     except Exception:  # noqa: BLE001
         pass
     _REAL_CACHE.update(at=now, farms=out)
@@ -276,7 +283,7 @@ def _collect_farms() -> list[dict[str, Any]]:
             "farmer_profile_id": f.get("farmer_profile_id"),
             "farmer_label": f.get("_farmer_name") or "Farmer", "crop": f.get("_crop"), "ring": ring,
             "area_ha": f.get("area_hectares") or round(area_hectares(ring), 2),
-            "policy": f.get("_policy"), "image_url": f.get("image_url") or f.get("map_image_url"),
+            "policy": f.get("_policy"), "paid": f.get("_paid", 0.0), "image_url": f.get("image_url") or f.get("map_image_url"),
         })
     return out
 
@@ -376,7 +383,8 @@ def evaluate(controls: Controls, farms: Optional[list[dict[str, Any]]] = None,
             calc = claim_engine.calculate_claim(
                 policy, event_id=EVENT_ID, event_date=date.today(), estimated_rainfall_mm=round(est, 2),
                 rainfall_sigma_mm=round(sigma or 0.0, 2),
-                sensor_trust=None if mean_trust is None else round(mean_trust, 3))
+                sensor_trust=None if mean_trust is None else round(mean_trust, 3),
+                already_paid=float(f.get("paid") or 0.0))
             naive_pay = _sev_payable(policy, naive_val)
             naive_total += naive_pay
             engine_total += calc.recommended_amount
@@ -408,6 +416,7 @@ def evaluate(controls: Controls, farms: Optional[list[dict[str, Any]]] = None,
                 "sum_insured": policy.get("sum_insured"), "trigger": policy.get("rainfall_trigger_mm"),
                 "full": policy.get("rainfall_max_payout_mm"), "payout_limit": policy.get("payout_limit")},
             "claim": None if not calc else {
+                "already_paid": float(f.get("paid") or 0.0),
                 "outcome": calc.outcome, "recommended_amount": calc.recommended_amount,
                 "entitlement": calc.entitlement, "trigger_crossed": calc.trigger_crossed,
                 "eligible": calc.eligible, "needs_investigation": calc.needs_investigation,

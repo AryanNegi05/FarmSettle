@@ -20,9 +20,9 @@ import {
 } from "../../../api/command";
 import { EXAMPLE_FARMLAND_COORDS, EXAMPLE_FARMLAND_URL } from "../../map/exampleFarmland";
 import ControlsPanel, { Controls } from "./ControlsPanel";
-import AgentPanel from "./AgentPanel";
+import AssessPanel from "./AssessPanel";
 import SensorPanel from "./SensorPanel";
-import { AgentRun, runAgents } from "../../../api/agents";
+import { ClaimRequest, listClaimRequests } from "../../../api/claimRequests";
 import FarmPanel from "./FarmPanel";
 import {
   RISK_COLOUR, RISK_LABEL, circleFeatures, evidenceLinks, farmBounds, farmFeatures, inr, landFeature,
@@ -50,13 +50,7 @@ const SOURCES = ["land", "farms", "circles", "ripples", "sensors", "towers", "li
 const FARM_LAYERS = ["farms-fill", "farms-line", "farms-3d", "farms-band", "circles-fill", "circles-glow", "circles-line", "unc-ring", "ripple-a", "ripple-b"];
 type NumMap = globalThis.Map<string, number>;
 
-/** Short stable id for the scenario on screen, so a claim is tied to exactly this event. */
-function scenarioId(req: unknown): string {
-  const s = JSON.stringify(req);
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  return `sim-${(h >>> 0).toString(36)}`;
-}
+const OPEN_STATUS = ['pending', 'assessed', 'on_hold'];
 
 export default function CommandCentrePage() {
   const { user } = useAuth();
@@ -80,18 +74,14 @@ export default function CommandCentrePage() {
   const [forensics, setForensics] = useState<SensorForensics | null>(null);
   const [forensicsBusy, setForensicsBusy] = useState(false);
   const [forensicsError, setForensicsError] = useState<string | null>(null);
-  const [agentOpen, setAgentOpen] = useState(false);
-  const [agentRun, setAgentRun] = useState<AgentRun | null>(null);
-  const [agentBusy, setAgentBusy] = useState(false);
-  const [agentError, setAgentError] = useState<string | null>(null);
+  const [requests, setRequests] = useState<ClaimRequest[]>([]);
 
   const [selectedFarmId, setSelectedFarmId] = useState<string | null>(null);
   const [selectedSensorId, setSelectedSensorId] = useState<string | null>(null);
   const [is3D, setIs3D] = useState(true);
   const [placingStorm, setPlacingStorm] = useState(false);
-  const [layers, setLayers] = useState({ circles: true, sensors: true, links: true, ripples: true, uncertainty: true });
+  const [layers, setLayers] = useState({ circles: true, sensors: true, links: true, ripples: true, uncertainty: false });
   const [layersOpen, setLayersOpen] = useState(false);
-  const [search, setSearch] = useState("");
   const [fCrop, setFCrop] = useState("");
   const [fRisk, setFRisk] = useState("");
   const [fOutcome, setFOutcome] = useState("");
@@ -146,14 +136,13 @@ export default function CommandCentrePage() {
     };
   }, [baseRequest, controls.district, controls.storm, tl]);
 
-  // The four agents investigate whatever storm the sliders/presets are currently showing.
-  function investigate() {
-    setAgentOpen(true); setAgentBusy(true); setAgentError(null);
-    runAgents(request)
-      .then(setAgentRun)
-      .catch((e) => setAgentError(e instanceof Error ? e.message : "Investigation failed"))
-      .finally(() => setAgentBusy(false));
-  }
+  // Farmers' claim requests (refreshed regularly and after each decision).
+  const refreshRequests = useCallback(() => { listClaimRequests().then(setRequests).catch(() => {}); }, []);
+  useEffect(() => {
+    refreshRequests();
+    const id = window.setInterval(refreshRequests, 30000);
+    return () => window.clearInterval(id);
+  }, [refreshRequests]);
 
   // Sensor Forensics: investigate the clicked sensor under the current sliders (debounced).
   const forensicsReq = useRef(0);
@@ -285,7 +274,7 @@ export default function CommandCentrePage() {
       const onFarm = (e: maplibregl.MapLayerMouseEvent) => {
         if (placingRef.current) return;
         const id = e.features?.[0]?.properties?.farm_id as string | undefined;
-        if (id) { setSelectedFarmId(id); setSelectedSensorId(null); }
+        if (id) { setSelectedFarmId(id); setSelectedSensorId(null); setSensorOpen(false); }
       };
       for (const l of ["farms-fill", "farms-3d"]) {
         map.on("click", l, onFarm);
@@ -353,13 +342,15 @@ export default function CommandCentrePage() {
     if (!map || !mapReady || !result) return;
     const set = (id: string, data: GeoJSON.FeatureCollection) => (map.getSource(id) as GeoJSONSource | undefined)?.setData(data);
     set("land", landFeature(result.land));
-    set("farms", farmFeatures(result.farms, prevPayout));
-    set("circles", circleFeatures(result.farms));
-    set("ripples", rippleFeatures(result.farms));
+    // Focused on one farm (a claim, or a farm clicked): draw that farm only. Otherwise the general view of all farms.
+    const shown = selectedFarmId ? result.farms.filter((f) => f.farm_id === selectedFarmId) : result.farms;
+    set("farms", farmFeatures(shown, prevPayout));
+    set("circles", circleFeatures(shown));
+    set("ripples", rippleFeatures(shown));
     set("sensors", sensorPoints(result.sensors));
     set("towers", sensorTowers(result.sensors));
     set("storm", stormFeature(result.controls.storm));
-  }, [result, prevPayout, mapReady]);
+  }, [result, prevPayout, mapReady, selectedFarmId]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -433,14 +424,9 @@ export default function CommandCentrePage() {
     return () => cancelAnimationFrame(raf);
   }, [mapReady]);
 
-  const matches = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (q.length < 2) return [];
-    return farms.filter((f) => [f.farm_id, f.name, f.farmer_label, String(f.farmer_id ?? "")].some((v) => v.toLowerCase().includes(q))).slice(0, 6);
-  }, [search, farms]);
-
-  const eventId = useMemo(() => scenarioId(request), [request]);
   const sum = result?.summary;
+  const openRequests = requests.filter((r) => OPEN_STATUS.includes(r.status));
+  const requestForFarm = selectedFarmId ? openRequests.find((r) => r.farm_id === selectedFarmId) ?? null : null;
   const dLiab = sum && prevSummary ? sum.total_liability - prevSummary.total_liability : 0;
 
   const setAdjust = useCallback((farmId: string, v: number) => {
@@ -461,10 +447,9 @@ export default function CommandCentrePage() {
           {evaluating && <span className="text-[11px] text-accent animate-pulse">recalculating…</span>}
         </div>
         <div className="flex items-center gap-3">
-          {user?.role !== "auditor" && (
-            <button onClick={investigate} disabled={agentBusy || !result}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-50">
-              {agentBusy ? "Investigating…" : "🤖 Run agent investigation"}
+          {selectedFarm && (
+            <button onClick={() => setSelectedFarmId(null)} className="text-xs font-semibold px-3 py-1.5 rounded-full border border-line text-ink-soft hover:bg-sunken">
+              Focused on {selectedFarm.name} · show all farms
             </button>
           )}
         {result && <span className="text-[11px] text-ink-faint hidden md:block">{result.farms.length} farms · {result.sensors.length} sensors · {result.elapsed_ms} ms</span>}
@@ -475,11 +460,9 @@ export default function CommandCentrePage() {
         <div className="relative flex-1 min-h-[320px]">
           <div ref={containerRef} style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }} />
 
-          {/* Search + filters */}
-          <div className="absolute top-3 left-3 right-[190px] z-10 max-w-[680px] space-y-1.5">
+          {/* Filters (general view only: a focused farm needs none) */}
+          {!selectedFarm && <div className="absolute top-3 left-3 right-[190px] z-10 max-w-[680px] space-y-1.5">
             <div className="rounded-xl border border-line bg-surface/80 backdrop-blur-md p-2 flex flex-wrap gap-1.5 items-center">
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search farmer ID, name or farm ID…"
-                className="flex-1 min-w-[160px] bg-sunken border border-line rounded-xl px-2.5 py-1.5 text-xs text-ink placeholder-gray-500" />
               {crops.length > 0 && (
                 <select value={fCrop} onChange={(e) => setFCrop(e.target.value)} className="bg-sunken border border-line rounded-xl px-2 py-1.5 text-xs text-ink">
                   <option value="">All crops</option>{crops.map((c) => <option key={c}>{c}</option>)}
@@ -494,18 +477,7 @@ export default function CommandCentrePage() {
               <input value={fMinRain} onChange={(e) => setFMinRain(e.target.value)} placeholder="Min mm/hr" type="number"
                 className="w-24 bg-sunken border border-line rounded-xl px-2 py-1.5 text-xs text-ink placeholder-gray-500" />
             </div>
-            {matches.length > 0 && (
-              <ul className="rounded-xl border border-line bg-surface/90 backdrop-blur-md overflow-hidden">
-                {matches.map((f) => (
-                  <li key={f.farm_id}>
-                    <button onClick={() => { setSelectedFarmId(f.farm_id); setSearch(""); }} className="w-full text-left px-3 py-1.5 text-xs text-ink-soft hover:bg-sunken">
-                      {f.name} <span className="text-ink-faint">· {f.farmer_label} · {f.farm_id.slice(0, 8)}…</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          </div>}
 
           {/* View controls */}
           <div className="absolute top-3 right-3 z-30 flex flex-col items-end gap-1.5">
@@ -536,12 +508,12 @@ export default function CommandCentrePage() {
               <span><i className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1" />faulty</span>
               <span className="text-accent">◯ coverage zone</span>
             </div>
-            <div className="flex items-center gap-2 text-ink-muted">
+            {layers.uncertainty && <div className="flex items-center gap-2 text-ink-muted">
               <span>Uncertainty halo:</span>
               <i className="inline-block h-1.5 w-16 rounded-full" style={{ background: "linear-gradient(90deg,#34d399,#fbbf24,#f87171)" }} />
               <span>thin/green = sure → thick/red = unsure</span>
-            </div>
-            <p className="text-ink-faint">Unmarked ground is land no farmer has registered yet.</p>
+            </div>}
+            {!selectedFarm && <p className="text-ink-faint">Unmarked ground is land no farmer has registered yet.</p>}
           </div>
 
           {sensorOpen && selectedSensorId && (
@@ -549,7 +521,6 @@ export default function CommandCentrePage() {
               onClose={() => setSensorOpen(false)} onSelectSensor={(id) => { setSelectedSensorId(id); }}
               onSelectFarm={(id) => setSelectedFarmId(id)} />
           )}
-          {agentOpen && <AgentPanel run={agentRun} running={agentBusy} error={agentError} onClose={() => setAgentOpen(false)} />}
           {placingStorm && <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-lg bg-amber-500/90 text-ink text-xs font-semibold">Click the map to place the storm centre</div>}
           {error && <div className="absolute bottom-24 right-3 z-10 max-w-xs rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2">{error}</div>}
           {result && farms.length === 0 && (
@@ -560,13 +531,31 @@ export default function CommandCentrePage() {
 
           {selectedFarm && (
             <FarmPanel farm={selectedFarm} prevPayout={prevPayout.get(selectedFarm.farm_id)} role={user?.role} series={series}
-              tl={tl} eventId={eventId} onAdjust={setAdjust} onClose={() => setSelectedFarmId(null)} />
+              tl={tl} onAdjust={setAdjust} onClose={() => setSelectedFarmId(null)} />
           )}
         </div>
 
         {/* Right rail: portfolio KPIs + simulation controls */}
-        <aside className="lg:w-[340px] lg:border-l border-line bg-surface/90 overflow-y-auto p-4 space-y-4">
-          {sum ? (
+        <aside className="lg:w-[380px] lg:border-l border-line bg-surface overflow-y-auto p-3 space-y-3">
+          {selectedFarm && (
+            <AssessPanel farm={selectedFarm} request={requestForFarm} scenario={request} canDecide={user?.role === "insurer" || user?.role === "admin"}
+              onClose={() => setSelectedFarmId(null)} onDecided={refreshRequests} />
+          )}
+
+          <section className="rounded-xl border border-line bg-sunken p-2.5 space-y-1.5">
+            <p className="text-[10px] uppercase tracking-wider text-ink-muted">Farmer claim requests · {openRequests.length} open</p>
+            {openRequests.length === 0 && <p className="text-[11px] text-ink-faint">None waiting. When a farmer applies for a claim it appears here.</p>}
+            {openRequests.map((r) => (
+              <button key={r.id} onClick={() => { setSelectedFarmId(r.farm_id); setSelectedSensorId(null); setSensorOpen(false); }}
+                className={`w-full text-left rounded-lg border px-2.5 py-1.5 text-xs transition ${selectedFarmId === r.farm_id ? "border-accent bg-accent-soft" : "border-line hover:bg-surface"}`}>
+                <span className="flex justify-between gap-2"><b className="text-ink">{r.farm_name}</b>
+                  <span className="text-ink-muted">{r.status.replace("_", " ")}</span></span>
+                <span className="text-[11px] text-ink-faint">{r.farmer_label ?? "Farmer"} · {new Date(r.created_at).toLocaleDateString()}{r.note ? ` · “${r.note.slice(0, 40)}”` : ""}</span>
+              </button>
+            ))}
+          </section>
+
+          {!selectedFarm && (sum ? (
             <section className="grid grid-cols-2 gap-2">
               <Kpi label="Occupied land" value={`${sum.occupied_ha} ha`} sub={`${sum.occupied_pct}% of ${sum.land_area_ha} ha · ${sum.farms} farm(s)`} wide />
               <Kpi label="Affected farms" value={`${sum.affected_farms}`} sub={`of ${sum.farms}`} />
@@ -579,14 +568,19 @@ export default function CommandCentrePage() {
               <Kpi label="Faulty sensors" value={`${sum.flagged_sensors}`} sub={`${sum.suspicious_sensors} suspicious`} />
               <Kpi label="Flood score" value={sum.district_flood_score.toFixed(2)} />
             </section>
-          ) : <p className="text-sm text-ink-muted">{error ?? "Loading the land…"}</p>}
+          ) : <p className="text-sm text-ink-muted">{error ?? "Loading the land…"}</p>)}
 
+          <details open={!selectedFarm} key={selectedFarm ? "focus" : "all"} className="rounded-xl border border-line bg-surface p-2.5">
+            <summary className="cursor-pointer text-xs font-semibold text-ink">Simulate rainfall (district, storm, sensors)</summary>
+            <div className="mt-3">
           <ControlsPanel land={result?.land ?? null} controls={controls} setControls={setControls} presets={presets} activePreset={activePreset} onPreset={applyPreset}
             sensors={sensors} selectedSensor={selectedSensor} placingStorm={placingStorm} setPlacingStorm={setPlacingStorm}
             tl={tl} playing={playing} onPlay={() => { setTl((t) => t ?? 0); setPlaying(true); }} onPause={() => setPlaying(false)}
             onReset={resetAll} onScrub={(v) => { setPlaying(false); setTl(v); }} />
+            </div>
+          </details>
 
-          {result && <p className="text-[10px] text-ink-faint leading-snug">{result.notes.join(" ")}</p>}
+          {!selectedFarm && result && <p className="text-[10px] text-ink-faint leading-snug">{result.notes.join(" ")}</p>}
         </aside>
       </div>
     </div>

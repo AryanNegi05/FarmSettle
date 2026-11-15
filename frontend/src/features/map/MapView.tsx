@@ -120,8 +120,6 @@ export default function MapView({
   });
   const [selectedFarm, setSelectedFarm] = useState<FarmMapDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [searchId, setSearchId] = useState("");
-  const [searchError, setSearchError] = useState<string | null>(null);
   const [is3D, setIs3D] = useState(default3D);
   const farmImages = useRef<Record<string, string>>({});
   const bound3DClicks = useRef(false);
@@ -692,31 +690,6 @@ export default function MapView({
       .finally(() => setDetailLoading(false));
   }, []);
 
-  function handleFarmSearch(e: React.FormEvent) {
-    e.preventDefault();
-    setSearchError(null);
-    const id = parseInt(searchId, 10);
-    if (!id || isNaN(id)) { setSearchError("Enter a valid numeric Farm ID."); return; }
-    const map = mapRef.current;
-    const farms = map?.getSource("farms") as GeoJSONSource | undefined;
-    // Pan to the farm on the map if it's in the loaded layer
-    const data = (farms as any)?._data as FeatureCollection | undefined;
-    const feat = data?.features?.find(f => f.properties?.farm_id === id);
-    if (feat && map) {
-      // Calculate centroid of the polygon to fly to
-      const coords = (feat.geometry as any).coordinates?.[0] as [number, number][] | undefined;
-      if (coords?.length) {
-        const lng = coords.reduce((s, c) => s + c[0], 0) / coords.length;
-        const lat = coords.reduce((s, c) => s + c[1], 0) / coords.length;
-        map.flyTo({ center: [lng, lat], zoom: 15, speed: 1.2 });
-      }
-    } else if (!feat) {
-      setSearchError("Farm ID not found on this map.");
-      return;
-    }
-    openFarmDetail(id);
-  }
-
   // ── Layer toggle ──────────────────────────────────────────────────────────
 
   function toggleLayer(key: keyof LayerVisibility) {
@@ -747,27 +720,6 @@ export default function MapView({
 
       {/* Layer controls */}
       <LayerControls layers={layers} onToggle={toggleLayer} />
-
-      {/* Farm ID search */}
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1">
-        <form onSubmit={handleFarmSearch} className="flex gap-1.5">
-          <input
-            className="bg-surface/90 border border-line-strong rounded-xl px-3 py-1.5 text-ink text-sm placeholder-gray-500 focus:outline-none focus:border-accent w-36"
-            placeholder="Farm ID…"
-            value={searchId}
-            onChange={e => { setSearchId(e.target.value); setSearchError(null); }}
-          />
-          <button
-            type="submit"
-            className="bg-accent text-white text-xs font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition"
-          >
-            Go
-          </button>
-        </form>
-        {searchError && (
-          <span className="bg-red-50 text-red-700 text-xs px-2 py-1 rounded">{searchError}</span>
-        )}
-      </div>
 
       {/* Legend */}
       <MapLegend />

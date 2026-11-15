@@ -40,7 +40,3 @@ export const listLossReports = (farmId: string) => apiFetch<LossReport[]>(`/basi
 export const addLossReport = (b: { farm_id: string; loss_pct: number; cause: string; observed_on?: string; note?: string }) =>
   apiFetch<LossReport>("/basis-risk/reports", { method: "POST", body: b });
 
-// Farmer side (own farms only)
-export const reportMyLoss = (b: { farm_id: string; loss_pct: number; cause: string; observed_on?: string; note?: string }) =>
-  apiFetch<LossReport>("/my/loss-reports", { method: "POST", body: b });
-export const getMyLossReports = () => apiFetch<LossReport[]>("/my/loss-reports");

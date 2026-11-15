@@ -92,11 +92,13 @@ export const en = {
   "cat.amount_too_low": "The amount is lower than my loss", "cat.rejected_wrongly": "My claim was rejected but I think it should be paid",
   "cat.wrong_rain_data": "The rain measured for my farm looks wrong", "cat.other": "Something else",
   // report crop damage (input to the insurer's Basis Risk Monitor)
-  "rep.title": "Report crop damage", "rep.intro": "Had losses on your farm? Tell your insurer how much. This helps them check whether the rain trigger matches what you experienced.",
-  "rep.open": "Report damage", "rep.close": "Close", "rep.farm": "Farm", "rep.loss": "How much of the crop was lost? ({pct}%)", "rep.cause": "Main cause",
-  "rep.note": "Anything else to add (optional)", "rep.submit": "Send report", "rep.sending": "Sending…",
-  "rep.thanks": "Thank you. Your report was sent to your insurer.", "rep.footer": "This does not create a claim and does not change any payout. It is one input your insurer uses to review the policy.",
-  "rep.past": "Your recent reports", "rep.pastLine": "{pct}% lost · {cause} · {date}",
+  "creq.title": "Apply for a claim", "creq.intro": "Had a loss from heavy rain or flood? Choose your farm and apply. Your insurer will check the rainfall at your farm and decide.",
+  "creq.open": "Apply for claim", "creq.close": "Close", "creq.farm": "Farm", "creq.note": "Anything to tell the insurer (optional)",
+  "creq.submit": "Send claim request", "creq.sending": "Sending…", "creq.sent": "Your claim request was sent to your insurer.",
+  "creq.footer": "A person at your insurer reviews every request. The amount comes from your policy and the rainfall at your farm.",
+  "creq.past": "Your claim requests", "creq.noPolicy": "A claim needs an active insurance policy on the farm.",
+  "creq.s.pending": "Waiting for the insurer", "creq.s.assessed": "Being reviewed", "creq.s.on_hold": "On hold",
+  "creq.s.approved": "Approved", "creq.s.rejected": "Not approved", "creq.viewClaim": "View claim",
   "cause.excess_rain": "Too much rain", "cause.flood": "Flood", "cause.waterlogging": "Waterlogging", "cause.drought": "Drought", "cause.pest_disease": "Pests or disease", "cause.other": "Other",
 } as const;
 

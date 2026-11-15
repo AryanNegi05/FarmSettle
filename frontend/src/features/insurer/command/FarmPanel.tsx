@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { CCFarm, CCSeries } from "../../../api/command";
-import { Claim, calculateClaim, decideClaim, getClaim } from "../../../api/claims";
 import { RISK_COLOUR, RISK_LABEL, inr } from "./layers";
 
 const RECOMMENDATION: Record<string, string> = {
@@ -13,14 +11,12 @@ interface Props {
   prevPayout: number | undefined;
   series: CCSeries | null;
   tl: number | null;
-  /** Identifies the scenario on screen, so a claim is tied to exactly this event. */
-  eventId: string;
   onAdjust: (farmId: string, mmHr: number) => void;
   onClose: () => void;
   role: string | undefined;
 }
 
-export default function FarmPanel({ farm, prevPayout, series, tl, eventId, onAdjust, onClose, role }: Props) {
+export default function FarmPanel({ farm, prevPayout, series, tl, onAdjust, onClose, role }: Props) {
   const claim = farm.claim;
   const now = claim?.recommended_amount ?? 0;
   const delta = prevPayout !== undefined && prevPayout > 0 ? ((now - prevPayout) / prevPayout) * 100 : null;
@@ -29,7 +25,7 @@ export default function FarmPanel({ farm, prevPayout, series, tl, eventId, onAdj
   const gap = est !== null ? farm.true_rainfall - est : null;
 
   return (
-    <div className="absolute top-[96px] left-3 z-20 w-[350px] max-w-[calc(100%-24px)] max-h-[calc(100%-96px-84px)] overflow-y-auto rounded-2xl border border-line bg-surface/85 backdrop-blur-md shadow-2xl text-sm text-ink-soft">
+    <div className="absolute top-[96px] left-3 z-20 w-[320px] max-w-[calc(100%-24px)] max-h-[calc(100%-96px-84px)] overflow-y-auto rounded-2xl border border-line bg-surface/85 backdrop-blur-md shadow-2xl text-sm text-ink-soft">
       <div className="flex items-start justify-between px-4 py-3 border-b border-line">
         <div>
           <p className="font-semibold text-ink">{farm.name}</p>
@@ -39,13 +35,10 @@ export default function FarmPanel({ farm, prevPayout, series, tl, eventId, onAdj
       </div>
 
       <div className="p-4 space-y-4">
-        {farm.image_url && <img src={farm.image_url} alt="Farmer-traced boundary" className="w-full rounded-lg border border-line" />}
-
         {/* 1. Rain effect on this plot */}
         <section className="space-y-1.5">
           <div className="flex items-center gap-2">
             <span className="text-[11px] px-2 py-0.5 rounded-full text-black font-semibold" style={{ background: RISK_COLOUR[farm.risk] }}>{RISK_LABEL[farm.risk]} risk</span>
-            <span className="text-[11px] text-ink-muted">Flood probability {farm.flood_probability ?? "n/a"} (indicative)</span>
           </div>
           <RainGauge farm={farm} />
           {gap !== null && Math.abs(gap) >= 3 && (
@@ -67,8 +60,8 @@ export default function FarmPanel({ farm, prevPayout, series, tl, eventId, onAdj
           </div>
         </section>
 
-        {/* 3. Policy payout curve */}
-        {farm.policy ? <PayoutCurve farm={farm} /> : (
+        {/* 3. Policy */}
+        {!farm.policy && (
           <div className="rounded-xl bg-sunken border border-line p-3 text-xs text-ink-soft space-y-1">
             <p>This farm has no insurance policy, so no payout can be calculated.</p>
             {canDecide && farm.farmer_profile_id && (
@@ -91,33 +84,18 @@ export default function FarmPanel({ farm, prevPayout, series, tl, eventId, onAdj
               Trigger {claim.trigger_crossed ? "crossed" : "not crossed"} · {claim.eligible ? "eligible" : "not eligible"}
               {claim.needs_investigation ? " · needs investigation" : ""}{claim.requires_human_review ? " · human review" : ""}
             </p>
-            <ul className="list-disc pl-4 text-[11px] text-ink-muted">{claim.reasons.slice(0, 3).map((r, i) => <li key={i}>{r}</li>)}</ul>
           </div>
         )}
 
         {/* 4. Rain over time */}
         <TimeChart series={series} tl={tl} policyTrigger={farm.policy?.trigger ?? null} />
 
-        <section>
-          <p className="text-[11px] uppercase tracking-wider text-ink-muted mb-1">
-            Sensor evidence · {farm.contributors.length} contributing · confidence {farm.sensor_confidence === null ? "n/a" : `${Math.round(farm.sensor_confidence * 100)}%`}
-          </p>
-          <ul className="text-[11px] space-y-0.5">
-            {farm.contributors.map((c) => (
-              <li key={c.sensor_id} className="flex justify-between text-cyan-100">
-                <span>{c.sensor_id} · {c.distance_m} m</span>
-                <span>{c.reading} mm/hr · trust {c.trust.toFixed(2)} · w {Math.round(c.weight * 100)}%</span>
-              </li>
-            ))}
-            {farm.excluded.map((e) => (
-              <li key={e.sensor_id} className="text-red-700" title={e.reason}>✕ {e.sensor_id} ({e.reading} mm/hr): {e.reason}</li>
-            ))}
-          </ul>
-        </section>
-
-        <DecisionBox farm={farm} eventId={eventId} canDecide={canDecide} />
-        <p className="text-[10px] text-ink-faint">Coverage circle ({Math.round(farm.circle_radius_m)} m) is a monitoring zone, not a guarantee that rain is uniform inside it. Amounts are simulated.</p>
       </div>
+    </div>
+  );
+}
+
+/** Estimated rainfall      </div>
     </div>
   );
 }
@@ -149,40 +127,6 @@ function RainGauge({ farm }: { farm: CCFarm }) {
   );
 }
 
-/** This farm's own policy: payout vs rainfall, with a marker at the current estimate. */
-function PayoutCurve({ farm }: { farm: CCFarm }) {
-  const p = farm.policy!;
-  const trig = p.trigger, full = p.full ?? (trig ? trig * 1.5 : null);
-  if (trig === null || full === null) return null;
-  const cap = Math.min(p.sum_insured, p.payout_limit ?? p.sum_insured);
-  const W = 300, H = 110, L = 34, B = 18, T = 8;
-  const xMax = Math.max(full * 1.4, (farm.estimated_rainfall ?? 0) * 1.1, 10);
-  const x = (v: number) => L + (v / xMax) * (W - L - 6);
-  const y = (v: number) => T + (1 - v / cap) * (H - T - B);
-  const est = farm.estimated_rainfall;
-  const pay = farm.claim?.recommended_amount ?? 0;
-  const entitlement = est === null ? 0 : cap * Math.min(1, Math.max(0, (est - trig) / (full - trig)));
-  return (
-    <div>
-      <p className="text-[11px] uppercase tracking-wider text-ink-muted mb-1">Payout curve · policy {p.number}</p>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full rounded-xl bg-sunken border border-line">
-        <polyline fill="none" stroke="#94a3b8" strokeWidth="1.5" points={`${x(0)},${y(0)} ${x(trig)},${y(0)} ${x(full)},${y(cap)} ${x(xMax)},${y(cap)}`} />
-        {est !== null && farm.lower !== null && farm.upper !== null && (
-          <rect x={x(farm.lower)} y={T} width={Math.max(1, x(farm.upper) - x(farm.lower))} height={H - T - B} fill="#22d3ee" opacity="0.12" />
-        )}
-        {est !== null && <line x1={x(est)} x2={x(est)} y1={T} y2={H - B} stroke="#22d3ee" strokeDasharray="3 3" />}
-        {est !== null && <circle cx={x(est)} cy={y(entitlement)} r="4" fill="#22d3ee" stroke="#fff" />}
-        <line x1={x(trig)} x2={x(trig)} y1={y(0)} y2={y(0) + 4} stroke="#fbbf24" />
-        <text x={x(trig)} y={H - 4} fontSize="8" fill="#fbbf24" textAnchor="middle">trigger {trig}</text>
-        <text x={x(full)} y={H - 4} fontSize="8" fill="#f87171" textAnchor="middle">full {full}</text>
-        <text x={L - 3} y={y(cap) + 3} fontSize="8" fill="#94a3b8" textAnchor="end">{inr(cap / 1000)}k</text>
-        <text x={L - 3} y={y(0) + 3} fontSize="8" fill="#94a3b8" textAnchor="end">0</text>
-      </svg>
-      <p className="text-[10px] text-ink-faint">Entitlement at the estimate {inr(entitlement)}; recommended after uncertainty and trust rules {inr(pay)}.</p>
-    </div>
-  );
-}
-
 /** This farm's rainfall (estimated and actual) and payout across the storm life-cycle. */
 function TimeChart({ series, tl, policyTrigger }: { series: CCSeries | null; tl: number | null; policyTrigger: number | null }) {
   if (!series || series.points.length < 2) return <p className="text-[11px] text-ink-faint">Rain-over-time chart loading…</p>;
@@ -210,124 +154,5 @@ function TimeChart({ series, tl, policyTrigger }: { series: CCSeries | null; tl:
       </svg>
       <p className="text-[10px] text-ink-faint">cyan = sensor estimate · white dashed = actual · amber = payout · amber dashed = trigger{tl !== null ? " · pink = now" : ""}</p>
     </div>
-  );
-}
-
-const STATUS_STYLE: Record<string, string> = {
-  AWAITING_APPROVAL: "bg-amber-500/20 text-amber-700 border-amber-200", UNDER_INVESTIGATION: "bg-orange-500/20 text-orange-700 border-orange-200",
-  APPROVED: "bg-blue-500/20 text-accent border-blue-200", PAID: "bg-green-500/20 text-green-700 border-green-200",
-  ON_HOLD: "bg-gray-500/20 text-ink-soft border-line-strong", REJECTED: "bg-red-500/20 text-red-700 border-red-200",
-};
-
-/** Insurer decision for this farm and this scenario. Nothing is decided automatically: a person
- *  creates the claim record, types a reason and confirms each decision. */
-function DecisionBox({ farm, eventId, canDecide }: { farm: CCFarm; eventId: string; canDecide: boolean }) {
-  const policy = farm.policy;
-  const [claim, setClaim] = useState<Claim | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [reason, setReason] = useState("");
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const est = farm.estimated_rainfall;
-  const outcome = farm.claim?.outcome ?? "NONE";
-
-  // A claim's identity is farm + event + policy, so the same scenario always finds the same record.
-  const claimId = policy ? `${farm.farm_id}__${eventId}__${policy.id}` : null;
-
-  useEffect(() => {
-    setMsg(null); setReason("");
-    if (!claimId) { setClaim(null); return; }
-    let live = true;
-    setLoading(true);
-    const t = window.setTimeout(() => {
-      getClaim(claimId).then((c) => { if (live) setClaim(c); }).catch(() => { if (live) setClaim(null); }).finally(() => { if (live) setLoading(false); });
-    }, 300);
-    return () => { live = false; window.clearTimeout(t); };
-  }, [claimId]);
-
-  if (!policy) return null;
-
-  async function create() {
-    if (est === null || !policy) return;
-    if (!window.confirm(`Create a claim record for ${farm.name} for this scenario (${inr(farm.claim?.recommended_amount ?? 0)} recommended)? A person still has to approve it.`)) return;
-    setBusy(true); setMsg(null);
-    try {
-      const r = await calculateClaim({
-        policy_id: policy.id, event_id: eventId, estimated_rainfall_mm: est, rainfall_sigma_mm: farm.uncertainty ?? 0,
-        sensor_trust: farm.sensor_confidence ?? undefined, dry_run: false,
-      });
-      if (r.claim) { setClaim(r.claim); setMsg({ ok: true, text: r.created ? "Claim record created." : "A record for this scenario already existed." }); }
-      else setMsg({ ok: true, text: "No payout for this scenario, so there is nothing to decide." });
-    } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : "Could not create the claim" }); }
-    finally { setBusy(false); }
-  }
-
-  async function decide(action: "approve" | "hold" | "investigate" | "reject") {
-    if (!claim) return;
-    if (reason.trim().length < 3) { setMsg({ ok: false, text: "Type a reason first (at least 3 characters)." }); return; }
-    const verb = { approve: "APPROVE", hold: "put on HOLD", investigate: "send for INVESTIGATION", reject: "REJECT" }[action];
-    if (!window.confirm(`${verb[0].toUpperCase() + verb.slice(1)} this claim for ${farm.name} (${inr(claim.recommended_amount)})?\n\nReason: ${reason.trim()}`)) return;
-    setBusy(true); setMsg(null);
-    try {
-      const updated = await decideClaim(claim.id, action, reason.trim());
-      setClaim(updated); setReason("");
-      setMsg({ ok: true, text: `Recorded: ${updated.status.replace(/_/g, " ").toLowerCase()}.` });
-    } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : "Decision failed" }); }
-    finally { setBusy(false); }
-  }
-
-  const decidable = claim && ["AWAITING_APPROVAL", "UNDER_INVESTIGATION", "ON_HOLD", "RECOMMENDED"].includes(claim.status);
-  const stale = claim && est !== null && Math.abs(claim.calculation.estimated_rainfall_mm - est) > 1;
-
-  return (
-    <section className="rounded-xl bg-sunken border border-line p-3 space-y-2">
-      <p className="text-[11px] uppercase tracking-wider text-ink-muted">Insurer decision · scenario {eventId}</p>
-
-      {loading && <p className="text-xs text-ink-faint">Checking for an existing claim…</p>}
-
-      {!loading && !claim && (
-        outcome === "NONE" || !farm.claim
-          ? <p className="text-xs text-ink-muted">No payout in this scenario, so there is nothing to decide.</p>
-          : canDecide
-            ? <button disabled={busy} onClick={create} className="w-full text-xs font-semibold px-3 py-2 rounded-full bg-accent text-white disabled:opacity-40">
-                {busy ? "Working…" : `Create claim record (${inr(farm.claim.recommended_amount)} recommended)`}
-              </button>
-            : <p className="text-xs text-ink-muted">No claim record yet. Only an insurer or admin can create one.</p>
-      )}
-
-      {claim && (
-        <>
-          <div className="flex items-center justify-between gap-2">
-            <span className={`text-[11px] px-2 py-0.5 rounded-full border ${STATUS_STYLE[claim.status] ?? "border-line text-ink-soft"}`}>{claim.status.replace(/_/g, " ")}</span>
-            <span className="text-sm font-semibold text-ink">{inr(claim.recommended_amount)}</span>
-          </div>
-          {stale && <p className="text-[11px] text-amber-700">Rainfall has changed since this claim was created ({claim.calculation.estimated_rainfall_mm} → {est} mm/hr). Decisions apply to the saved record.</p>}
-          {claim.decision_reason && <p className="text-[11px] text-ink-muted">Last reason: “{claim.decision_reason}”</p>}
-
-          {canDecide && decidable && (
-            <div className="space-y-1.5">
-              <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)"
-                className="w-full bg-sunken border border-line rounded-xl px-2.5 py-1.5 text-xs text-ink placeholder-gray-500" />
-              <div className="grid grid-cols-2 gap-1.5">
-                <button disabled={busy || claim.recommended_amount <= 0} onClick={() => decide("approve")} className="text-xs font-semibold px-2 py-1.5 rounded-full bg-accent text-white disabled:opacity-40">Approve</button>
-                <button disabled={busy} onClick={() => decide("reject")} className="text-xs font-semibold px-2 py-1.5 rounded-lg bg-red-600 text-white disabled:opacity-40">Reject</button>
-                <button disabled={busy} onClick={() => decide("investigate")} className="text-xs font-semibold px-2 py-1.5 rounded-xl bg-sunken text-ink border border-line disabled:opacity-40">Request investigation</button>
-                <button disabled={busy} onClick={() => decide("hold")} className="text-xs font-semibold px-2 py-1.5 rounded-xl bg-sunken text-ink border border-line disabled:opacity-40">Place on hold</button>
-              </div>
-              <p className="text-[10px] text-ink-faint">You will be asked to confirm. Approved claims are paid (simulated) from Claims Review.</p>
-            </div>
-          )}
-          {!canDecide && <p className="text-[11px] text-ink-faint">Read-only: only an insurer or admin can decide.</p>}
-          {claim.history.length > 0 && (
-            <ul className="text-[10px] text-ink-faint space-y-0.5">
-              {claim.history.slice(-3).map((h, i) => <li key={i}>{new Date(h.at).toLocaleTimeString()} · {h.from ?? "—"} → {h.to} · {h.reason}</li>)}
-            </ul>
-          )}
-        </>
-      )}
-
-      {msg && <p className={`text-[11px] ${msg.ok ? "text-green-700" : "text-red-700"}`}>{msg.text}</p>}
-      <Link to="/insurer/claims" className="text-[11px] text-accent hover:underline inline-block">Open Claims Review (payments, all claims) →</Link>
-    </section>
   );
 }

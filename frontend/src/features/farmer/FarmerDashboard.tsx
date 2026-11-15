@@ -5,7 +5,7 @@ import { BankAccountOut, FarmOut, PolicyOut, getBankAccount, getMyFarms, listPol
 import { FarmerClaimItem, getMyClaims } from "../../api/farmerClaims";
 import { useI18n } from "../../i18n";
 import { StatusPill, Tracker, inr } from "./claimUi";
-import LossReportCard from "./LossReportCard";
+import ClaimRequestCard from "./ClaimRequestCard";
 
 const CLOSED = ["PAID", "REJECTED"];
 
@@ -136,7 +136,7 @@ export default function FarmerDashboard() {
         </section>
       )}
 
-      <LossReportCard farms={farms} />
+      <ClaimRequestCard farms={farms} />
 
       <div className="grid md:grid-cols-2 gap-5">
         <section className="space-y-2">

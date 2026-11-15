@@ -17,8 +17,7 @@ Farm-level indicators of where the rain index and policy trigger may not match w
 - Every flag has a level (low/moderate/high) and a basis: **reported** (compared with a recorded loss) or **model** (model signals only).
   Thresholds are explicit in `BasisConfig` and returned with the response.
 - "Modelled damage potential" is a proxy (max of farm-risk score and flood probability), not an agronomic loss model.
-- Loss reports (`loss_reports` collection): a farmer reports damage on their own farm (`POST /api/my/loss-reports`, card on the farmer
-  dashboard, translated) or the insurer records a field observation (`POST /api/basis-risk/reports`). They only feed the indicators; they
+- Loss reports (`loss_reports` collection): the insurer records a field observation (`POST /api/basis-risk/reports`); the farmer-side report was replaced by claim requests. They only feed the indicators; they
   never create, change or pay a claim.
 - UI: scenario presets and rain slider (same simulation as the Command Centre), KPI row, payout-vs-loss scatter (solid = report-backed,
   hollow = model proxy), filters and sorting, a per-farm table (location, crop, rain vs trigger bar with uncertainty, coverage, payout,

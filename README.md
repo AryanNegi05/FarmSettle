@@ -2,6 +2,22 @@
 
 Agentic climate insurance intelligence & financial risk platform (B2B2C). All payments are **simulated**. Full plan: [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## How it works
+
+![Claim pipeline](docs/img/claim_pipeline.png)
+
+The amount of every claim comes from a graduated formula on the estimated rainfall at the farm. The AI only explains the result, and a person approves, rejects or holds.
+
+![Payout curve](docs/img/payout_curve.png)
+
+A faulty or lying sensor is detected and down-weighted instead of being trusted blindly, and each farm gets its own rainfall estimate with an uncertainty range:
+
+![Command Centre scenario map](docs/img/scenario_map.png)
+
+![Liability by scenario](docs/img/liability_by_scenario.png)
+
+_These charts are generated from the real claim engine and Command Centre evaluator with synthetic farms and simulated weather (`python backend/scripts/make_readme_charts.py`, needs `pip install matplotlib`). They are not screenshots of the running app._
+
 ## Structure
 
 ```
@@ -68,6 +84,7 @@ Stage notes: [docs/stages/](docs/stages/)
 - **Basis Risk Monitor** (`/insurer/basis-risk`): per-farm indicators of possible under- or over-compensation. Indicators only, never proof; they never create or change a claim.
 - **Sensor Forensics Workbench**: click any sensor in the Command Centre for its history, neighbour comparison, rule-based anomaly markers and LightGBM feature contributions.
 - **Backtesting** (`/insurer/backtest`), **premium** pricing, **disputes**, and farmer-side claim views (`/farmer/claims`) with farmer loss reports.
+- **Claim requests:** a farmer applies for a claim on a farm (dashboard → Apply for claim). The insurer opens it in the Command Centre, sets the simulated rainfall, and the farm-only 3D view shows the AI + formula assessment on the right. The amount comes from the claim engine; the LLM only explains it. Approve/reject creates the claim record; hold keeps the request open. The old farmer "Report damage" card was removed.
 - Weather and sensors are simulated; all payments are simulated.
 
 ## What was added after Stage 6

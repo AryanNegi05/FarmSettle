@@ -300,6 +300,41 @@ class FirestoreService:
                  "total_amount": (r.get("compliance") or {}).get("total_amount", 0)} for r in runs[:limit]]
 
     # ═══════════════════════════════════════════════════════════════════════════
+    # CLAIM REQUESTS  (a farmer asks for a claim on one of their farms; the insurer assesses and decides)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def create_claim_request(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        ref = self.db.collection("claim_requests").document()
+        ref.set(data)
+        return {**data, "id": ref.id}
+
+    def get_claim_request(self, request_id: str) -> Optional[Dict[str, Any]]:
+        doc = self.db.collection("claim_requests").document(request_id).get()
+        if not doc.exists:
+            return None
+        r = doc.to_dict()
+        r["id"] = doc.id
+        return r
+
+    def list_claim_requests(self, farmer_profile_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        col = self.db.collection("claim_requests")
+        docs = col.where(filter=FieldFilter("farmer_profile_id", "==", farmer_profile_id)).stream() if farmer_profile_id else col.stream()
+        out = []
+        for d in docs:
+            r = d.to_dict()
+            r["id"] = d.id
+            out.append(r)
+        out.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
+        return out
+
+    def update_claim_request(self, request_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        ref = self.db.collection("claim_requests").document(request_id)
+        ref.update(self._firestore_safe(data))
+        r = ref.get().to_dict()
+        r["id"] = request_id
+        return r
+
+    # ═══════════════════════════════════════════════════════════════════════════
     # LOSS REPORTS  (crop-loss experience reported by a farmer or recorded by the insurer's field staff)
     # ═══════════════════════════════════════════════════════════════════════════
 

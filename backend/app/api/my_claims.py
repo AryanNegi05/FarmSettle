@@ -101,27 +101,3 @@ def challenge(claim_id: str, body: ChallengeIn, lang: str = "en", current_user=D
     claim = {**claim, **fs.update_claim(claim_id, update)}
     claim["id"] = claim_id
     return _detail(claim, policies, lang)
-
-
-# ── Crop-loss reports from the farmer (an input to the insurer's Basis Risk Monitor) ─────────────────
-
-from app.api.basis_risk import LossReportIn, build_report   # noqa: E402
-
-
-@router.post("/loss-reports", status_code=201)
-def report_loss(body: LossReportIn, current_user=Depends(require_role(UserRole.farmer))):
-    """The farmer reports crop damage on one of their own farms. It does not create or change a claim."""
-    profile = _profile(current_user)
-    farm = next((f for f in fs.list_farms_by_profile(profile["id"]) if f["id"] == body.farm_id), None)
-    if not farm:
-        raise HTTPException(status_code=404, detail="Farm not found")
-    r = fs.create_loss_report(build_report(body, farm=farm, source="farmer", uid=current_user.uid))
-    return {k: r[k] for k in ("id", "farm_id", "loss_pct", "cause", "observed_on", "note", "source", "created_at")}
-
-
-@router.get("/loss-reports")
-def my_loss_reports(current_user=Depends(require_role(UserRole.farmer))):
-    profile = _profile(current_user)
-    own = {f["id"] for f in fs.list_farms_by_profile(profile["id"])}
-    return [{k: r.get(k) for k in ("id", "farm_id", "loss_pct", "cause", "observed_on", "note", "source", "created_at")}
-            for r in fs.list_loss_reports() if r.get("farm_id") in own]
