@@ -52,8 +52,15 @@ app.include_router(claim_requests_router)
 app.include_router(my_claim_requests_router)
 app.include_router(premium_router)
 
+@app.get("/health")
+def health_root() -> dict:
+    """Health check endpoint for load balancers and monitoring tools."""
+    return {"status": "ok", "service": "paratrust-api", "stage": 6, "database": "firebase"}
+
+
 @app.get("/api/health")
 def health() -> dict:
+    """Legacy health check endpoint."""
     return {"status": "ok", "service": "paratrust-api", "stage": 6, "database": "firebase"}
 
 

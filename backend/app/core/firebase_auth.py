@@ -22,21 +22,40 @@ try:
     if os.getenv("FIREBASE_PROJECT_ID"):
         logger.info("Loading Firebase credentials from environment variables")
         
+        # Get private key and handle newlines
+        private_key = os.getenv("FIREBASE_PRIVATE_KEY", "")
+        # Handle both literal \n and actual newlines
+        if "\\n" in private_key:
+            private_key = private_key.replace("\\n", "\n")
+        
+        # Validate critical fields
+        project_id = os.getenv("FIREBASE_PROJECT_ID")
+        client_email = os.getenv("FIREBASE_CLIENT_EMAIL")
+        
+        if not project_id or not client_email or not private_key:
+            raise ValueError(
+                f"Missing critical Firebase env vars - "
+                f"project_id: {bool(project_id)}, "
+                f"client_email: {bool(client_email)}, "
+                f"private_key: {bool(private_key)}"
+            )
+        
         # Build service account dict from environment variables
         service_account_info = {
-            "type": os.getenv("FIREBASE_TYPE", "service_account"),
-            "project_id": os.getenv("FIREBASE_PROJECT_ID"),
+            "type": "service_account",
+            "project_id": project_id,
             "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID"),
-            "private_key": os.getenv("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),
-            "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+            "private_key": private_key,
+            "client_email": client_email,
             "client_id": os.getenv("FIREBASE_CLIENT_ID"),
             "auth_uri": os.getenv("FIREBASE_AUTH_URI", "https://accounts.google.com/o/oauth2/auth"),
             "token_uri": os.getenv("FIREBASE_TOKEN_URI", "https://oauth2.googleapis.com/token"),
-            "auth_provider_x509_cert_url": os.getenv("FIREBASE_AUTH_PROVIDER_X509_CERT_URL", 
+            "auth_provider_x509_cert_url": os.getenv("FIREBASE_AUTH_PROVIDER_CERT_URL", 
                                                       "https://www.googleapis.com/oauth2/v1/certs"),
-            "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_X509_CERT_URL"),
+            "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_CERT_URL"),
         }
         
+        logger.info(f"Firebase env vars loaded - Project: {project_id}, Email: {client_email}")
         cred = credentials.Certificate(service_account_info)
     else:
         # Fallback to credentials file
@@ -48,6 +67,33 @@ try:
     logger.info("✅ Firebase Admin SDK initialized successfully")
 except Exception as e:
     logger.error(f"❌ Failed to initialize Firebase Admin SDK: {e}")
+    logger.error(f"Error type: {type(e).__name__}")
+    logger.error(f"Error details: {str(e)}")
+    
+    # Debug: Check which env vars are set
+    firebase_vars = [
+        "FIREBASE_PROJECT_ID",
+        "FIREBASE_PRIVATE_KEY_ID", 
+        "FIREBASE_PRIVATE_KEY",
+        "FIREBASE_CLIENT_EMAIL",
+        "FIREBASE_CLIENT_ID",
+        "FIREBASE_AUTH_URI",
+        "FIREBASE_TOKEN_URI",
+        "FIREBASE_AUTH_PROVIDER_CERT_URL",
+        "FIREBASE_CLIENT_CERT_URL"
+    ]
+    
+    logger.info("Firebase environment variables status:")
+    for var in firebase_vars:
+        value = os.getenv(var)
+        if value:
+            if "PRIVATE_KEY" in var:
+                logger.info(f"  {var}: SET (length: {len(value)})")
+            else:
+                logger.info(f"  {var}: {value[:50]}..." if len(value) > 50 else f"  {var}: {value}")
+        else:
+            logger.error(f"  {var}: NOT SET ❌")
+    
     logger.warning("⚠️  Backend will not be able to verify Firebase tokens")
     db = None
 

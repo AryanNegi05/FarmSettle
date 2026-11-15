@@ -45,6 +45,11 @@ firebase-adminsdk*.json
 *.pem
 *.key
 
+# Deployment files with secrets
+DEPLOYMENT_ENV_VARS.txt
+backend/.env.production
+frontend/.env.production
+
 # Logs
 *.log
 backend/backend.log
