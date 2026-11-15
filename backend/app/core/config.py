@@ -14,7 +14,11 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-dev-only"
     access_token_minutes: int = 60
     firebase_credentials_path: str = "firebase-credentials.json"
-    cors_origins: Union[list[str], str] = ["http://localhost:5173"]
+    cors_origins: Union[list[str], str] = [
+        "http://localhost:5173",
+        "https://farm-settle-deploy.vercel.app",
+        "https://farmsettle-backend.onrender.com"
+    ]
     simulation_seed: int = 42
     cloudinary_url: str = ""
     # Stage 7 agents: any OpenAI-compatible chat endpoint. Defaults to Groq's free tier; a missing or
