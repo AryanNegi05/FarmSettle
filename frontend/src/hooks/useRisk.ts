@@ -1,5 +1,5 @@
 /**
- * React hook that manages Stage 6 farm-level risk state.
+ * React hook that manages farm-level risk state.
  *
  * Responsibilities:
  *   - Run GP spatial estimation (POST /risk/assess).

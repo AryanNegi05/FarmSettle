@@ -1,4 +1,4 @@
-# ParaTrust --- Detailed Stage-by-Stage Development Roadmap
+# FarmTrust --- Detailed Stage-by-Stage Development Roadmap
 
 **Project type:** Agentic Climate Insurance Intelligence & Financial
 Risk Platform\
@@ -11,7 +11,7 @@ integrating each completed stage into the working application.
 
 ## 1. Project Overview
 
-ParaTrust is a platform that helps insurers investigate climate-related
+FarmTrust is a platform that helps insurers investigate climate-related
 insurance events and make transparent, evidence-based parametric
 insurance settlements. It combines a farmer-facing experience with an
 advanced insurer/bank-facing operations platform.
@@ -36,7 +36,7 @@ The platform will:
 
 ### 1.1 Product positioning
 
-**ParaTrust is a B2B2C Agentic InsurTech Platform.**
+**FarmTrust is a B2B2C Agentic InsurTech Platform.**
 
 -   **B2B:** Insurers and financial partners use the operational
     platform, policy tools, risk information, and claim workflows.
@@ -52,7 +52,7 @@ The platform will:
 The insurer is responsible for insurance coverage decisions and claim
 authorisation. A bank may act as a distribution partner, lender,
 account-verification provider, or payment-service partner depending on
-the business arrangement. ParaTrust should not imply that every bank is
+the business arrangement. FarmTrust should not imply that every bank is
 itself the insurer.
 
 For the hackathon prototype, all money movement must be simulated. Do
@@ -180,7 +180,7 @@ their dependencies are implemented.
 
 ### Objective
 
-Create the initial ParaTrust website, establish the application
+Create the initial FarmTrust website, establish the application
 structure, and provide separate entry points for farmers,
 insurers/banks, and auditors.
 
@@ -189,7 +189,7 @@ insurers/banks, and auditors.
 1.  Create the frontend project.
 2.  Set up the backend service.
 3.  Configure the database connection.
-4.  Create the ParaTrust landing page and navigation.
+4.  Create the FarmTrust landing page and navigation.
 5.  Build login and registration screens.
 6.  Define user roles:
     -   Farmer
@@ -923,18 +923,18 @@ added only after selecting and authorising a provider.
 
 Example notification:
 
-> ParaTrust: Your insured farm has been included in a flood-event
+> FarmTrust: Your insured farm has been included in a flood-event
 > investigation. Your claim is currently under review. You can view its
-> progress in your ParaTrust account.
+> progress in your FarmTrust account.
 
 After approval:
 
-> ParaTrust: Your claim has been approved for the illustrative amount
+> FarmTrust: Your claim has been approved for the illustrative amount
 > shown in your account. Payment status: Processing.
 
 After simulated settlement:
 
-> ParaTrust: Your simulated payment has been marked as completed. Please
+> FarmTrust: Your simulated payment has been marked as completed. Please
 > check your claim details for the transaction reference.
 
 ### Dispute workflow
@@ -1143,7 +1143,7 @@ repeatable hackathon demonstration.
 # 5. Suggested Technical Architecture
 
 ``` text
-                         PARATRUST WEBSITE
+                         FARMTRUST WEBSITE
                                  |
                  React + TypeScript + MapLibre
                                  |
@@ -1475,13 +1475,13 @@ Target duration: approximately 4 minutes and 30 seconds.
 ### Suggested opening statement
 
 "A single broken rain gauge can make an insurer pay the wrong
-farmer---or deny the right one. ParaTrust uses AI agents to investigate
+farmer---or deny the right one. FarmTrust uses AI agents to investigate
 the evidence, while a transparent settlement engine ensures every payout
 is justified and auditable."
 
 ### Suggested closing statement
 
-"ParaTrust connects climate intelligence with financial accountability.
+"FarmTrust connects climate intelligence with financial accountability.
 It helps insurers investigate uncertain weather evidence, estimate
 farm-level risk, and coordinate fast, fair, and auditable parametric
 insurance settlements."
@@ -1527,7 +1527,7 @@ insurance settlements."
 
 # 12. Definition of Done
 
-ParaTrust's hackathon prototype is ready when a judge can follow this
+FarmTrust's hackathon prototype is ready when a judge can follow this
 complete journey without manual database intervention:
 
 1.  A farmer and policy exist in the platform.
@@ -1546,7 +1546,7 @@ complete journey without manual database intervention:
 13. An auditor can trace the decision and verify the audit record.
 
 **Final development principle:** Build one reliable end-to-end insurance
-journey before adding optional sophistication. ParaTrust's strongest
+journey before adding optional sophistication. FarmTrust's strongest
 demonstration is not the number of AI features; it is the ability to
 turn uncertain climate evidence into a transparent, controlled, and
 auditable financial decision.

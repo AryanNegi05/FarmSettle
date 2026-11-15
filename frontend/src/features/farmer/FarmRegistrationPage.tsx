@@ -10,7 +10,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import maplibregl, { Map, GeoJSONSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import PageLayout from "../shared/PageLayout";
-import { createFarm, addCrop, getFarm, updateFarm, uploadFarmImage } from "../../api/stage2";
+import { createFarm, addCrop, getFarm, updateFarm, uploadFarmImage } from "../../api/registry";
 
 type LngLat = [number, number];
 
@@ -472,7 +472,7 @@ export default function FarmRegistrationPage() {
   // ── UI ─────────────────────────────────────────────────────────────────────
 
   const inputCls =
-    "w-full bg-navy border border-navy-700 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-brand-blue";
+    "w-full bg-paper border border-line rounded-lg px-3 py-2 text-ink text-sm placeholder-gray-500 focus:outline-none focus:border-accent";
   const btn = "text-sm font-semibold px-3 py-2 rounded-lg transition disabled:opacity-40";
 
   const steps: { id: Stage[]; label: string }[] = [
@@ -499,7 +499,7 @@ export default function FarmRegistrationPage() {
         {steps.map((s) => {
           const active = s.id.includes(stage);
           return (
-            <li key={s.label} className={`px-3 py-1 rounded-full border ${active ? "bg-brand-green/20 border-brand-green text-green-300" : "border-navy-700 text-gray-500"}`}>
+            <li key={s.label} className={`px-3 py-1 rounded-full border ${active ? "bg-accent/20 border-accent text-green-700" : "border-line text-ink-faint"}`}>
               {s.label}
             </li>
           );
@@ -508,10 +508,10 @@ export default function FarmRegistrationPage() {
 
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
         {/* ── Side panel ─────────────────────────────────────────────── */}
-        <div className="bg-navy-800 border border-navy-700 rounded-xl p-4 space-y-4 order-2 lg:order-1">
-          {error && <div className="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-3 py-2 text-sm">{error}</div>}
+        <div className="bg-surface shadow-card border border-line rounded-2xl p-4 space-y-4 order-2 lg:order-1">
+          {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">{error}</div>}
 
-          <div className="bg-navy border border-navy-700 rounded-lg px-3 py-2 text-sm text-gray-300">
+          <div className="bg-paper border border-line rounded-lg px-3 py-2 text-sm text-ink-soft">
             {instruction[stage]}
           </div>
 
@@ -519,32 +519,32 @@ export default function FarmRegistrationPage() {
             <>
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-gray-400">Farm name *</label>
+                  <label className="text-xs text-ink-muted">Farm name *</label>
                   <input className={inputCls} placeholder="e.g. North Field" value={farmName} onChange={(e) => setFarmName(e.target.value)} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3 gap-2">
                   <div>
-                    <label className="text-xs text-gray-400">Village</label>
+                    <label className="text-xs text-ink-muted">Village</label>
                     <input className={inputCls} value={village} onChange={(e) => setVillage(e.target.value)} />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400">District</label>
+                    <label className="text-xs text-ink-muted">District</label>
                     <input className={inputCls} value={district} onChange={(e) => setDistrict(e.target.value)} />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400">State</label>
+                    <label className="text-xs text-ink-muted">State</label>
                     <input className={inputCls} value={stateName} onChange={(e) => setStateName(e.target.value)} />
                   </div>
                 </div>
                 <div className={`grid grid-cols-2 gap-2 ${isEdit ? "hidden" : ""}`}>
                   <div>
-                    <label className="text-xs text-gray-400">Crop</label>
+                    <label className="text-xs text-ink-muted">Crop</label>
                     <select className={inputCls} value={cropType} onChange={(e) => setCropType(e.target.value)}>
                       {CROP_TYPES.map((c) => <option key={c} value={c}>{c[0].toUpperCase() + c.slice(1)}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400">Season</label>
+                    <label className="text-xs text-ink-muted">Season</label>
                     <select className={inputCls} value={cropSeason} onChange={(e) => setCropSeason(e.target.value)}>
                       {SEASONS.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
                     </select>
@@ -554,30 +554,30 @@ export default function FarmRegistrationPage() {
 
               <form onSubmit={handleSearch} className="flex gap-2">
                 <input className={inputCls} placeholder="Search location…" value={query} onChange={(e) => setQuery(e.target.value)} />
-                <button type="submit" disabled={searching} className={`${btn} bg-navy-700 text-white hover:bg-navy-600`}>
+                <button type="submit" disabled={searching} className={`${btn} bg-sunken text-ink hover:bg-line`}>
                   {searching ? "…" : "Search"}
                 </button>
               </form>
-              {searchMsg && <p className="text-xs text-gray-400">{searchMsg}</p>}
+              {searchMsg && <p className="text-xs text-ink-muted">{searchMsg}</p>}
             </>
           )}
 
           {/* Drawing controls */}
           {stage === "locate" && (
-            <button onClick={startDrawing} className={`${btn} w-full bg-brand-green text-navy`}>Start Drawing</button>
+            <button onClick={startDrawing} className={`${btn} w-full bg-accent text-white`}>Start Drawing</button>
           )}
 
           {stage === "drawing" && (
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={undoPoint} disabled={!points.length} className={`${btn} bg-navy-700 text-white hover:bg-navy-600`}>↶ Undo point</button>
-                <button onClick={clearAll} disabled={!points.length} className={`${btn} bg-navy-700 text-white hover:bg-navy-600`}>Clear all</button>
+                <button onClick={undoPoint} disabled={!points.length} className={`${btn} bg-sunken text-ink hover:bg-line`}>↶ Undo point</button>
+                <button onClick={clearAll} disabled={!points.length} className={`${btn} bg-sunken text-ink hover:bg-line`}>Clear all</button>
               </div>
-              <button onClick={finishBoundary} disabled={points.length < 3} className={`${btn} w-full bg-brand-green text-navy`}>
+              <button onClick={finishBoundary} disabled={points.length < 3} className={`${btn} w-full bg-accent text-white`}>
                 Finish Boundary
               </button>
               {points.length > 0 && points.length < 3 && (
-                <p className="text-xs text-amber-400">Add at least 3 corners to make an area.</p>
+                <p className="text-xs text-amber-700">Add at least 3 corners to make an area.</p>
               )}
             </div>
           )}
@@ -586,10 +586,10 @@ export default function FarmRegistrationPage() {
             <div className="space-y-2">
               <BoundaryStats points={points} hectares={hectares} error={boundaryError} />
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={startDrawing} className={`${btn} bg-navy-700 text-white hover:bg-navy-600`}>Redraw</button>
-                <button onClick={undoPoint} className={`${btn} bg-navy-700 text-white hover:bg-navy-600`}>↶ Undo point</button>
+                <button onClick={startDrawing} className={`${btn} bg-sunken text-ink hover:bg-line`}>Redraw</button>
+                <button onClick={undoPoint} className={`${btn} bg-sunken text-ink hover:bg-line`}>↶ Undo point</button>
               </div>
-              <button onClick={goToReview} disabled={!!boundaryError} className={`${btn} w-full bg-brand-green text-navy`}>
+              <button onClick={goToReview} disabled={!!boundaryError} className={`${btn} w-full bg-accent text-white`}>
                 Review farm →
               </button>
             </div>
@@ -604,12 +604,12 @@ export default function FarmRegistrationPage() {
                 <Row label="Boundary points" value={String(points.length)} />
                 <Row label="Total area" value={`${hectares.toFixed(2)} ha`} strong />
               </dl>
-              <p className="text-xs text-gray-500">
-                This boundary was traced by you on satellite imagery. ParaTrust does not detect farms automatically or verify land ownership.
+              <p className="text-xs text-ink-faint">
+                This boundary was traced by you on satellite imagery. FarmTrust does not detect farms automatically or verify land ownership.
               </p>
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => setStage("adjust")} disabled={saving} className={`${btn} bg-navy-700 text-white hover:bg-navy-600`}>Edit Boundary</button>
-                <button onClick={handleSave} disabled={saving} className={`${btn} bg-brand-green text-navy`}>
+                <button onClick={() => setStage("adjust")} disabled={saving} className={`${btn} bg-sunken text-ink hover:bg-line`}>Edit Boundary</button>
+                <button onClick={handleSave} disabled={saving} className={`${btn} bg-accent text-white`}>
                   {saving ? "Saving…" : isEdit ? "Save Changes" : "Confirm & Save Farm"}
                 </button>
               </div>
@@ -618,16 +618,16 @@ export default function FarmRegistrationPage() {
         </div>
 
         {/* ── Map ─────────────────────────────────────────────────────── */}
-        <div className="relative rounded-xl overflow-hidden border border-navy-700 order-1 lg:order-2 h-[55vh] lg:h-[calc(100vh-220px)] min-h-[320px]">
+        <div className="relative rounded-xl overflow-hidden border border-line order-1 lg:order-2 h-[55vh] lg:h-[calc(100vh-220px)] min-h-[320px]">
           <div ref={containerRef} style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0 }} />
           {loadingFarm && (
-            <div className="absolute inset-0 z-20 bg-navy/70 flex items-center justify-center text-gray-300 text-sm">Loading your farm…</div>
+            <div className="absolute inset-0 z-20 bg-paper/70 flex items-center justify-center text-ink-soft text-sm">Loading your farm…</div>
           )}
-          <div className="absolute top-2 left-2 z-10 bg-black/60 text-xs text-gray-200 px-2 py-1 rounded pointer-events-none">
+          <div className="absolute top-2 left-2 z-10 bg-ink/40 text-xs text-ink-soft px-2 py-1 rounded pointer-events-none">
             {stage === "drawing" ? "Drawing mode — click to add corners" : stage === "adjust" ? "Drag corners to adjust" : "Example farmland (satellite imagery)"}
           </div>
           {closed && stage !== "locate" && (
-            <div className="absolute bottom-8 right-2 z-10 bg-navy-800/90 border border-brand-green text-green-300 text-xs font-semibold px-3 py-1.5 rounded-lg">
+            <div className="absolute bottom-8 right-2 z-10 bg-surface/90 border border-accent text-green-700 text-xs font-semibold px-3 py-1.5 rounded-xl">
               {hectares.toFixed(2)} ha · {points.length} points
             </div>
           )}
@@ -642,18 +642,18 @@ export default function FarmRegistrationPage() {
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="flex justify-between gap-3">
-      <dt className="text-gray-400">{label}</dt>
-      <dd className={`text-right ${strong ? "text-green-300 font-semibold" : "text-white"}`}>{value}</dd>
+      <dt className="text-ink-muted">{label}</dt>
+      <dd className={`text-right ${strong ? "text-green-700 font-semibold" : "text-ink"}`}>{value}</dd>
     </div>
   );
 }
 
 function BoundaryStats({ points, hectares, error }: { points: LngLat[]; hectares: number; error: string | null }) {
   if (error) {
-    return <div className="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-3 py-2 text-sm">⚠ {error}</div>;
+    return <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">⚠ {error}</div>;
   }
   return (
-    <div className="bg-green-900/30 border border-green-700 rounded-lg px-3 py-2 text-sm text-green-200">
+    <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm text-green-700">
       ✓ Boundary selected — <b>{hectares.toFixed(2)} ha</b> across {points.length} points.
     </div>
   );

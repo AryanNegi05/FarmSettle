@@ -129,6 +129,9 @@ export interface PolicyOut {
   payout_limit: number | null;
   status: string;
   created_at: string;
+  premium_amount?: number | null;
+  premium_status?: string | null;
+  premium_paid_at?: string | null;
 }
 
 export interface FarmerSummary {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "../shared/PageLayout";
-import { searchFarmers, FarmerSummary } from "../../api/stage2";
+import { searchFarmers, FarmerSummary } from "../../api/registry";
 
 export default function FarmerRegistryPage() {
   const navigate = useNavigate();
@@ -31,14 +31,14 @@ export default function FarmerRegistryPage() {
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <form onSubmit={handleSearch} className="flex gap-3 max-w-md flex-1">
           <input
-            className="flex-1 bg-navy border border-navy-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-brand-blue"
+            className="flex-1 bg-paper border border-line rounded-lg px-3 py-2 text-ink placeholder-gray-500 focus:outline-none focus:border-accent"
             placeholder="Search by name, email, or district…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           <button
             type="submit"
-            className="bg-brand-blue text-white font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition text-sm"
+            className="bg-accent text-white font-semibold px-4 py-2 rounded-full hover:opacity-90 transition text-sm"
           >
             Search
           </button>
@@ -46,22 +46,22 @@ export default function FarmerRegistryPage() {
 
       </div>
 
-      {loading && <p className="text-gray-400">Loading…</p>}
+      {loading && <p className="text-ink-muted">Loading…</p>}
       {error && (
-        <div className="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">{error}</div>
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{error}</div>
       )}
 
       {!loading && !error && farmers.length === 0 && (
-        <div className="bg-navy-800 border border-navy-700 rounded-xl p-8 text-center text-gray-400">
+        <div className="bg-surface shadow-card border border-line rounded-2xl p-8 text-center text-ink-muted">
           No farmers found{query ? ` for "${query}"` : ""}.
         </div>
       )}
 
       {!loading && farmers.length > 0 && (
-        <div className="bg-navy-800 border border-navy-700 rounded-xl overflow-hidden">
+        <div className="bg-surface shadow-card border border-line rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-navy-700 text-gray-400 text-left">
+              <tr className="border-b border-line text-ink-muted text-left">
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">District</th>
@@ -73,17 +73,17 @@ export default function FarmerRegistryPage() {
               {farmers.map((f, i) => (
                 <tr
                   key={f.id}
-                  className={`border-b border-navy-700/50 hover:bg-navy-700/40 cursor-pointer transition ${i === farmers.length - 1 ? "border-b-0" : ""}`}
+                  className={`border-b border-line/50 hover:bg-sunken/40 cursor-pointer transition ${i === farmers.length - 1 ? "border-b-0" : ""}`}
                   onClick={() => navigate(`/insurer/farmers/${f.id}`)}
                 >
-                  <td className="px-4 py-3 text-white font-medium">{f.full_name}</td>
-                  <td className="px-4 py-3 text-gray-300">{f.email}</td>
-                  <td className="px-4 py-3 text-gray-300">{f.district ?? "—"}</td>
+                  <td className="px-4 py-3 text-ink font-medium">{f.full_name}</td>
+                  <td className="px-4 py-3 text-ink-soft">{f.email}</td>
+                  <td className="px-4 py-3 text-ink-soft">{f.district ?? "—"}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className="bg-navy-700 text-gray-300 px-2 py-0.5 rounded-full text-xs">{f.farm_count}</span>
+                    <span className="bg-sunken text-ink-soft px-2 py-0.5 rounded-full text-xs">{f.farm_count}</span>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className="bg-navy-700 text-gray-300 px-2 py-0.5 rounded-full text-xs">{f.policy_count}</span>
+                    <span className="bg-sunken text-ink-soft px-2 py-0.5 rounded-full text-xs">{f.policy_count}</span>
                   </td>
                 </tr>
               ))}

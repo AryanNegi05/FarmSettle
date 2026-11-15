@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     llm_model: str = "llama-3.3-70b-versatile"
     llm_timeout_s: float = 20.0
     agent_payout_budget: float = 5_000_000.0     # per-run payout budget checked by Compliance
+    payment_mode: str = "sim"                    # sim | razorpay_test | razorpay_live
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    razorpay_webhook_secret: str = ""
+    premium_rate: float = 0.03                   # premium = sum_insured * rate
     agent_large_claim: float = 50_000.0          # claims at/above this are flagged "large"
 
     @field_validator("cors_origins", mode="after")

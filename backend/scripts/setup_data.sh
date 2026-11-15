@@ -15,7 +15,7 @@ set -e
 PYTHON=${PYTHON:-python3}
 
 echo ""
-echo "=== ParaTrust Data Setup ==="
+echo "=== FarmTrust Data Setup ==="
 echo ""
 
 # 1. Install packages

@@ -10,7 +10,7 @@ import PageLayout from "../shared/PageLayout";
 import {
   createPolicy, updatePolicy, getPolicy, searchFarmers, getFarmerDetail,
   FarmerSummary, FarmOut, PolicyCreate, PolicyUpdate,
-} from "../../api/stage2";
+} from "../../api/registry";
 
 const STATUSES = ["active", "expired", "cancelled"];
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
@@ -149,38 +149,38 @@ export default function PolicyFormPage() {
     }
   }
 
-  const inputCls = "w-full bg-navy border border-navy-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-brand-blue disabled:opacity-60";
+  const inputCls = "w-full bg-paper border border-line rounded-lg px-3 py-2 text-ink placeholder-gray-500 focus:outline-none focus:border-accent disabled:opacity-60";
   const t = num(trigger), f = num(full), si = num(sumInsured);
   const effectiveFull = f ?? (t ? t * 1.5 : null);
 
-  if (loading) return <PageLayout title="Edit Policy" backTo="/insurer/policies"><p className="text-gray-400">Loading…</p></PageLayout>;
+  if (loading) return <PageLayout title="Edit Policy" backTo="/insurer/policies"><p className="text-ink-muted">Loading…</p></PageLayout>;
 
   return (
     <PageLayout title={isEdit ? "Edit Policy" : "Create Policy"} subtitle={isEdit ? `Policy ${policyNumber}` : "Issue a new insurance policy for a registered farm"} backTo="/insurer/policies">
-      <form onSubmit={handleSubmit} className="bg-navy-800 border border-navy-700 rounded-xl p-6 space-y-6 max-w-2xl">
-        {error && <div className="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">{error}</div>}
+      <form onSubmit={handleSubmit} className="bg-surface shadow-card border border-line rounded-2xl p-6 space-y-6 max-w-2xl">
+        {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{error}</div>}
 
         {/* Who and what the policy covers */}
         {isEdit ? (
-          <div className="bg-navy border border-navy-700 rounded-lg p-3 text-sm space-y-0.5">
-            <p className="text-gray-400 text-xs uppercase tracking-wide">Covers</p>
-            <p className="text-white">{who?.farmer} <span className="text-gray-500">{who?.email && `· ${who.email}`}</span></p>
-            <p className="text-gray-300">Farm: {who?.farm}</p>
-            <p className="text-xs text-gray-500">The farmer and farm cannot be changed. To cover a different farm, create a new policy.</p>
+          <div className="bg-paper border border-line rounded-lg p-3 text-sm space-y-0.5">
+            <p className="text-ink-muted text-xs uppercase tracking-wide">Covers</p>
+            <p className="text-ink">{who?.farmer} <span className="text-ink-faint">{who?.email && `· ${who.email}`}</span></p>
+            <p className="text-ink-soft">Farm: {who?.farm}</p>
+            <p className="text-xs text-ink-faint">The farmer and farm cannot be changed. To cover a different farm, create a new policy.</p>
           </div>
         ) : (
           <>
             <div className="space-y-1">
-              <label className="text-sm text-gray-400">Policy number *</label>
+              <label className="text-sm text-ink-muted">Policy number *</label>
               <div className="flex gap-2">
                 <input className={inputCls} value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)} required />
                 <button type="button" onClick={() => setPolicyNumber(generatePolicyNumber())}
-                  className="text-xs bg-navy-700 text-gray-300 px-3 rounded-lg hover:bg-navy-600 transition whitespace-nowrap">Regenerate</button>
+                  className="text-xs bg-sunken text-ink-soft px-3 rounded-lg hover:bg-line transition whitespace-nowrap">Regenerate</button>
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm text-gray-400">Farmer *</label>
+              <label className="text-sm text-ink-muted">Farmer *</label>
               <input className={inputCls} placeholder="Search farmer by name or email…" value={farmerSearch} onChange={(e) => setFarmerSearch(e.target.value)} />
               <select className={inputCls} value={farmerId} onChange={(e) => { setFarmerId(e.target.value); setFarmId(""); }}>
                 <option value="">— Select farmer —</option>
@@ -189,7 +189,7 @@ export default function PolicyFormPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm text-gray-400">Farm *</label>
+              <label className="text-sm text-ink-muted">Farm *</label>
               <select className={inputCls} value={farmId} onChange={(e) => setFarmId(e.target.value)} disabled={!farmerId || farms.length === 0}>
                 <option value="">— Select farm —</option>
                 {farms.map((fm) => <option key={String(fm.id)} value={String(fm.id)}>{fm.name}{fm.area_hectares ? ` (${fm.area_hectares} ha)` : ""}</option>)}
@@ -203,61 +203,61 @@ export default function PolicyFormPage() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-sm text-gray-400">Coverage start *</label>
+            <label className="text-sm text-ink-muted">Coverage start *</label>
             <input className={inputCls} type="date" value={start} onChange={(e) => setStart(e.target.value)} required />
           </div>
           <div className="space-y-1">
-            <label className="text-sm text-gray-400">Coverage end *</label>
+            <label className="text-sm text-ink-muted">Coverage end *</label>
             <input className={inputCls} type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} required />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-sm text-gray-400">Sum insured (₹) *</label>
+            <label className="text-sm text-ink-muted">Sum insured (₹) *</label>
             <input className={inputCls} type="number" min="0" step="1000" placeholder="e.g. 80000" value={sumInsured} onChange={(e) => setSumInsured(e.target.value)} required />
           </div>
           <div className="space-y-1">
-            <label className="text-sm text-gray-400">Payout limit (₹)</label>
+            <label className="text-sm text-ink-muted">Payout limit (₹)</label>
             <input className={inputCls} type="number" min="0" step="1000" placeholder="optional cap" value={limit} onChange={(e) => setLimit(e.target.value)} />
           </div>
         </div>
 
         <fieldset className="space-y-3">
-          <legend className="text-brand-blue font-semibold text-sm uppercase tracking-wider">Rain trigger</legend>
+          <legend className="text-accent font-semibold text-sm uppercase tracking-wider">Rain trigger</legend>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-sm text-gray-400">Payout starts at (mm/hr)</label>
+              <label className="text-sm text-ink-muted">Payout starts at (mm/hr)</label>
               <input className={inputCls} type="number" min="0" step="1" placeholder="e.g. 20" value={trigger} onChange={(e) => setTrigger(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-gray-400">Full payout at (mm/hr)</label>
+              <label className="text-sm text-ink-muted">Full payout at (mm/hr)</label>
               <input className={inputCls} type="number" min="0" step="1" placeholder={t ? `blank = ${t * 1.5}` : "e.g. 60"} value={full} onChange={(e) => setFull(e.target.value)} />
             </div>
           </div>
           {t !== null && effectiveFull !== null && si !== null && !isNaN(si) && (
-            <p className="text-xs text-cyan-200 bg-navy border border-navy-700 rounded-lg px-3 py-2">
+            <p className="text-xs text-accent bg-paper border border-line rounded-lg px-3 py-2">
               Pays nothing below {t} mm/hr, rises gradually, and pays the full {inr(Math.min(si, parseFloat(limit) || si))} at {effectiveFull} mm/hr or more
               (for example {inr(Math.min(si, parseFloat(limit) || si) * 0.5)} at {(t + effectiveFull) / 2} mm/hr).
             </p>
           )}
           <div className="space-y-1 max-w-xs">
-            <label className="text-sm text-gray-400">Flood water-level trigger (optional)</label>
+            <label className="text-sm text-ink-muted">Flood water-level trigger (optional)</label>
             <input className={inputCls} type="number" min="0" step="0.1" placeholder="optional" value={flood} onChange={(e) => setFlood(e.target.value)} />
           </div>
         </fieldset>
 
         <div className="space-y-1">
-          <label className="text-sm text-gray-400">Status</label>
+          <label className="text-sm text-ink-muted">Status</label>
           <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}>
             {STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
           </select>
-          {isEdit && status === "cancelled" && <p className="text-xs text-amber-300">A cancelled policy pays nothing from now on.</p>}
+          {isEdit && status === "cancelled" && <p className="text-xs text-amber-700">A cancelled policy pays nothing from now on.</p>}
         </div>
 
         <div className="flex gap-3">
-          <Link to="/insurer/policies" className="px-5 py-2 rounded-lg bg-navy-700 text-white hover:bg-navy-600 transition text-center">Cancel</Link>
-          <button type="submit" disabled={saving} className="flex-1 bg-brand-blue text-white font-semibold py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition">
+          <Link to="/insurer/policies" className="px-5 py-2 rounded-lg bg-sunken text-ink hover:bg-line transition text-center">Cancel</Link>
+          <button type="submit" disabled={saving} className="flex-1 bg-accent text-white font-semibold py-2 rounded-full hover:opacity-90 disabled:opacity-50 transition">
             {saving ? "Saving…" : isEdit ? "Save changes" : "Create policy"}
           </button>
         </div>

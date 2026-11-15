@@ -146,6 +146,9 @@ class PolicyOut(BaseModel):
     payout_limit: Optional[float] = None
     status: str
     created_at: datetime
+    premium_amount: Optional[float] = None
+    premium_status: Optional[str] = None      # unpaid | paid
+    premium_paid_at: Optional[str] = None
     # Display names so lists don't need extra lookups (filled in by the API, not stored).
     farm_name: Optional[str] = None
     farmer_name: Optional[str] = None

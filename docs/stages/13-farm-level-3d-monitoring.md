@@ -2,7 +2,7 @@
 
 Status: 🟡 First working version built (`/insurer/command`); several spec items still open (see "Built / not built")
 
-Upgrade the existing ParaTrust map and insurer dashboard. **Do not rebuild the app or replace the backend.** Improve farm-level visualisation, sensor distribution, rainfall simulation and interactive insurance decision-making on top of what exists (MapLibre map, Stage 4 simulation, Stage 5 LightGBM trust scoring, Stage 6 GP/Kriging + ERA5 risk).
+Upgrade the existing FarmTrust map and insurer dashboard. **Do not rebuild the app or replace the backend.** Improve farm-level visualisation, sensor distribution, rainfall simulation and interactive insurance decision-making on top of what exists (MapLibre map, Stage 4 simulation, Stage 5 LightGBM trust scoring, Stage 6 GP/Kriging + ERA5 risk).
 
 ## 0. Design rule: 3D is the same farm as the 2D map
 

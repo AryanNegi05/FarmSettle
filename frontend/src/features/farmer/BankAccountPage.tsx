@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import PageLayout from "../shared/PageLayout";
-import { getBankAccount, submitBankAccount, BankAccountOut } from "../../api/stage2";
+import { getBankAccount, submitBankAccount, BankAccountOut } from "../../api/registry";
 
 type VerificationStatus = "pending" | "verified" | "failed";
 
 function VerificationBadge({ status }: { status: VerificationStatus }) {
   const map: Record<VerificationStatus, string> = {
-    pending: "bg-yellow-900/50 text-yellow-300 border-yellow-700",
-    verified: "bg-green-900/50 text-green-300 border-green-700",
-    failed: "bg-red-900/50 text-red-300 border-red-700",
+    pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    verified: "bg-green-50 text-green-700 border-green-200",
+    failed: "bg-red-50 text-red-700 border-red-200",
   };
   const icons: Record<VerificationStatus, string> = {
     pending: "⏳",
@@ -71,65 +71,65 @@ export default function BankAccountPage() {
   }
 
   const inputCls =
-    "w-full bg-navy-900 border border-navy-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-brand-blue";
+    "w-full bg-paper border border-line rounded-lg px-3 py-2 text-ink placeholder-gray-500 focus:outline-none focus:border-accent";
 
   return (
     <PageLayout title="Bank Account" subtitle="Payment details for insurance payouts" backTo="/farmer">
-      <div className="bg-yellow-900/20 border border-yellow-800 rounded-lg px-4 py-3 text-yellow-300 text-sm max-w-lg">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 text-yellow-700 text-sm max-w-lg">
         ⚠️ Your account number is used only for payment processing. We store only the last 4 digits.
       </div>
 
       {loading ? (
-        <p className="text-gray-400">Loading…</p>
+        <p className="text-ink-muted">Loading…</p>
       ) : account ? (
         // Show existing account
-        <div className="bg-navy-800 border border-navy-700 rounded-xl p-6 space-y-4 max-w-lg">
+        <div className="bg-surface shadow-card border border-line rounded-2xl p-6 space-y-4 max-w-lg">
           <div className="flex items-center justify-between">
-            <h2 className="text-white font-semibold">Account on File</h2>
+            <h2 className="text-ink font-semibold">Account on File</h2>
             <VerificationBadge status={account.verification_status as VerificationStatus} />
           </div>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-gray-500 text-xs">Account Holder</p>
-              <p className="text-white">{account.account_holder_name}</p>
+              <p className="text-ink-faint text-xs">Account Holder</p>
+              <p className="text-ink">{account.account_holder_name}</p>
             </div>
             <div>
-              <p className="text-gray-500 text-xs">Account Number</p>
-              <p className="text-white font-mono">{account.masked_account_number}</p>
+              <p className="text-ink-faint text-xs">Account Number</p>
+              <p className="text-ink font-mono">{account.masked_account_number}</p>
             </div>
             {account.bank_name && (
               <div>
-                <p className="text-gray-500 text-xs">Bank</p>
-                <p className="text-white">{account.bank_name}</p>
+                <p className="text-ink-faint text-xs">Bank</p>
+                <p className="text-ink">{account.bank_name}</p>
               </div>
             )}
             {account.ifsc_code && (
               <div>
-                <p className="text-gray-500 text-xs">IFSC</p>
-                <p className="text-white font-mono">{account.ifsc_code}</p>
+                <p className="text-ink-faint text-xs">IFSC</p>
+                <p className="text-ink font-mono">{account.ifsc_code}</p>
               </div>
             )}
           </div>
         </div>
       ) : (
         // Show submission form
-        <form onSubmit={handleSubmit} className="bg-navy-800 border border-navy-700 rounded-xl p-6 space-y-5 max-w-lg">
+        <form onSubmit={handleSubmit} className="bg-surface shadow-card border border-line rounded-2xl p-6 space-y-5 max-w-lg">
           {success && (
-            <div className="bg-green-900/40 border border-green-700 text-green-300 rounded-lg px-4 py-3 text-sm">
+            <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm">
               ✅ Bank account submitted successfully!
             </div>
           )}
           {error && (
-            <div className="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">{error}</div>
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{error}</div>
           )}
 
           <div className="space-y-1">
-            <label className="text-sm text-gray-400">Account Holder Name *</label>
+            <label className="text-sm text-ink-muted">Account Holder Name *</label>
             <input className={inputCls} placeholder="As on bank records" value={holderName} onChange={(e) => setHolderName(e.target.value)} required />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm text-gray-400">Account Number * (12–16 digits)</label>
+            <label className="text-sm text-ink-muted">Account Number * (12–16 digits)</label>
             <input
               className={inputCls}
               type="text"
@@ -143,12 +143,12 @@ export default function BankAccountPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm text-gray-400">Bank Name</label>
+            <label className="text-sm text-ink-muted">Bank Name</label>
             <input className={inputCls} placeholder="e.g. State Bank of India" value={bankName} onChange={(e) => setBankName(e.target.value)} />
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm text-gray-400">IFSC Code *</label>
+            <label className="text-sm text-ink-muted">IFSC Code *</label>
             <input
               className={inputCls}
               placeholder="e.g. SBIN0001234"
@@ -162,7 +162,7 @@ export default function BankAccountPage() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-brand-blue text-white font-semibold py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+            className="w-full bg-accent text-white font-semibold py-2 rounded-full hover:opacity-90 disabled:opacity-50 transition"
           >
             {saving ? "Submitting…" : "Submit Bank Account"}
           </button>

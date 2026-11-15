@@ -18,7 +18,7 @@ import type {
   FarmOut,
   FarmerDetail,
   CropOut,
-} from "./stage2";
+} from "./registry";
 
 // ── Policies ──────────────────────────────────────────────────────────────────
 

@@ -34,7 +34,6 @@ export function navFor(role?: UserRole | null): NavItem[] {
         { to: "/insurer/policies", label: "Policies" },
         { to: "/insurer/claims", label: "Claims" },
         { to: "/insurer/command", label: "Command Centre" },
-        { to: "/insurer/basis-risk", label: "Basis Risk" },
         { to: "/insurer/replay", label: "Replay" },
         ...(role === "admin" ? [{ to: "/admin", label: "Admin" }] : []),
       ];

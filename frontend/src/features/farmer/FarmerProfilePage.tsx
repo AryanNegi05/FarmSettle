@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import PageLayout from "../shared/PageLayout";
-import { getMyProfile, upsertMyProfile, FarmerProfileOut } from "../../api/stage2";
+import { getMyProfile, upsertMyProfile, FarmerProfileOut } from "../../api/registry";
 import { useAuth } from "../../hooks/useAuth";
 
 export default function FarmerProfilePage() {
@@ -45,28 +45,28 @@ export default function FarmerProfilePage() {
   }
 
   const inputCls =
-    "w-full bg-navy-900 border border-navy-700 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-brand-blue";
+    "w-full bg-paper border border-line rounded-lg px-3 py-2 text-ink placeholder-gray-500 focus:outline-none focus:border-accent";
 
   return (
     <PageLayout title="My Profile" subtitle="Update your personal details" backTo="/farmer">
       {loading ? (
-        <p className="text-gray-400">Loading…</p>
+        <p className="text-ink-muted">Loading…</p>
       ) : (
-        <form onSubmit={handleSubmit} className="bg-navy-800 border border-navy-700 rounded-xl p-6 space-y-5 max-w-lg">
+        <form onSubmit={handleSubmit} className="bg-surface shadow-card border border-line rounded-2xl p-6 space-y-5 max-w-lg">
           {success && (
-            <div className="bg-green-900/40 border border-green-700 text-green-300 rounded-lg px-4 py-3 text-sm">
+            <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm">
               ✅ Profile saved successfully!
             </div>
           )}
           {error && (
-            <div className="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
               {error}
             </div>
           )}
 
           {/* Full name — read-only */}
           <div className="space-y-1">
-            <label className="text-sm text-gray-400">Full Name</label>
+            <label className="text-sm text-ink-muted">Full Name</label>
             <input
               className={`${inputCls} opacity-60 cursor-not-allowed`}
               value={user?.full_name ?? ""}
@@ -75,7 +75,7 @@ export default function FarmerProfilePage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm text-gray-400">Phone Number</label>
+            <label className="text-sm text-ink-muted">Phone Number</label>
             <input
               className={inputCls}
               placeholder="+91 98765 43210"
@@ -85,7 +85,7 @@ export default function FarmerProfilePage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm text-gray-400">Address</label>
+            <label className="text-sm text-ink-muted">Address</label>
             <textarea
               className={inputCls}
               rows={3}
@@ -97,7 +97,7 @@ export default function FarmerProfilePage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-sm text-gray-400">District</label>
+              <label className="text-sm text-ink-muted">District</label>
               <input
                 className={inputCls}
                 placeholder="e.g. Nashik"
@@ -107,7 +107,7 @@ export default function FarmerProfilePage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-sm text-gray-400">State</label>
+              <label className="text-sm text-ink-muted">State</label>
               <input
                 className={inputCls}
                 placeholder="e.g. Maharashtra"
@@ -121,7 +121,7 @@ export default function FarmerProfilePage() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-brand-blue text-white font-semibold py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+            className="w-full bg-accent text-white font-semibold py-2 rounded-full hover:opacity-90 disabled:opacity-50 transition"
           >
             {saving ? "Saving…" : "Save Profile"}
           </button>

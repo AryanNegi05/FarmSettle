@@ -61,9 +61,9 @@ export interface LayerVisibility {
   water: boolean;
   rainfall_overlay: boolean;
   flood_overlay: boolean;
-  /** Stage 5 — sensor trust overlay (coloured by trust score, flagged sensors highlighted). */
+  /** sensor trust overlay (coloured by trust score, flagged sensors highlighted). */
   sensor_trust: boolean;
-  /** Stage 6 — farm risk overlay (coloured by risk category). */
+  /** farm risk overlay (coloured by risk category). */
   risk_overlay: boolean;
 }
 
@@ -88,14 +88,14 @@ interface MapViewProps {
   layerVisibility?: Partial<LayerVisibility>;
   /** Live weather snapshot — when provided, rainfall + flood overlays are rendered. */
   weatherSnapshot?: SimulationSnapshot | null;
-  /** Stage 5 — sensor trust GeoJSON (annotated FeatureCollection). When present,
+  /** sensor trust GeoJSON (annotated FeatureCollection). When present,
    *  sensors are recoloured by trust score and flagged sensors are highlighted. */
   sensorTrust?: GeoJSON.FeatureCollection | null;
-  /** Stage 5 — called when a sensor trust marker is clicked. */
+  /** called when a sensor trust marker is clicked. */
   onSensorClick?: (sensorId: string) => void;
-  /** Stage 6 — farm risk GeoJSON. When present, farms are coloured by risk category. */
+  /** farm risk GeoJSON. When present, farms are coloured by risk category. */
   riskGeojson?: GeoJSON.FeatureCollection | null;
-  /** Stage 6 — called when a risk polygon is clicked. */
+  /** called when a risk polygon is clicked. */
   onFarmRiskClick?: (farmId: string) => void;
 }
 
@@ -270,9 +270,9 @@ export default function MapView({
             .setLngLat((e as any).lngLat)
             .setHTML(
               `<div class="text-xs font-medium">${p.name}</div>` +
-              `<div class="text-xs text-gray-400 capitalize">${p.sensor_type.replace("_", " ")}</div>` +
-              `<div class="text-xs text-gray-500">Status: ${p.status ?? "normal"}</div>` +
-              `<div class="text-xs text-gray-500 italic">Simulated sensor</div>`
+              `<div class="text-xs text-ink-muted capitalize">${p.sensor_type.replace("_", " ")}</div>` +
+              `<div class="text-xs text-ink-faint">Status: ${p.status ?? "normal"}</div>` +
+              `<div class="text-xs text-ink-faint italic">Simulated sensor</div>`
             )
             .addTo(map);
         });
@@ -482,7 +482,7 @@ export default function MapView({
       }
     };
 
-    // When the Stage-5 trust overlay is active, the base static sensor circles
+    // When the trust overlay is active, the base static sensor circles
     // are hidden so we don't show two sets of markers at the same location.
     const hasTrust = !!sensorTrust;
 
@@ -519,7 +519,7 @@ export default function MapView({
     }
   }, [weatherSnapshot, mapReady]);
 
-  // ── Sensor trust overlay (Stage 5) ────────────────────────────────────────────
+  // ── Sensor trust overlay ────────────────────────────────────────────
 
   useEffect(() => {
     const map = mapRef.current;
@@ -580,17 +580,17 @@ export default function MapView({
         };
         const clsLabel = p.predicted_class === "genuine_localised_cell" ? "Genuine localised cell" : p.predicted_class;
         const flagHtml = p.is_flagged
-          ? `<div class="text-xs text-red-400 font-semibold">⚠ Flagged — investigate</div>`
-          : `<div class="text-xs text-green-400">No fault detected</div>`;
+          ? `<div class="text-xs text-red-700 font-semibold">⚠ Flagged — investigate</div>`
+          : `<div class="text-xs text-green-700">No fault detected</div>`;
         trustPopup
           .setLngLat((e as any).lngLat)
           .setHTML(
             `<div class="text-xs font-medium font-mono">${p.id}</div>` +
-            `<div class="text-xs text-gray-400 capitalize">${p.sensor_type.replace("_", " ")}</div>` +
-            `<div class="text-xs text-gray-300">Class: <span class="capitalize">${clsLabel}</span></div>` +
-            `<div class="text-xs text-gray-300">Trust: ${p.trust_score.toFixed(2)} · conf ${Math.round((p.confidence ?? 0) * 100)}%</div>` +
+            `<div class="text-xs text-ink-muted capitalize">${p.sensor_type.replace("_", " ")}</div>` +
+            `<div class="text-xs text-ink-soft">Class: <span class="capitalize">${clsLabel}</span></div>` +
+            `<div class="text-xs text-ink-soft">Trust: ${p.trust_score.toFixed(2)} · conf ${Math.round((p.confidence ?? 0) * 100)}%</div>` +
             flagHtml +
-            `<div class="text-xs text-gray-500 italic">Simulated · click for detail</div>`
+            `<div class="text-xs text-ink-faint italic">Simulated · click for detail</div>`
           )
           .addTo(map);
       });
@@ -615,7 +615,7 @@ export default function MapView({
     }
   }, [sensorTrust, mapReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Farm risk overlay (Stage 6) ────────────────────────────────────────────
+  // ── Farm risk overlay ────────────────────────────────────────────
 
   useEffect(() => {
     const map = mapRef.current;
@@ -654,10 +654,10 @@ export default function MapView({
         riskPopup
           .setLngLat((e as any).lngLat)
           .setHTML(
-            `<div class="text-xs font-semibold text-white font-mono">${p.farm_id}</div>` +
-            `<div class="text-xs text-gray-300">Risk: <span class="capitalize font-bold" style="color:${p.colour}">${p.risk_category}</span></div>` +
-            (p.estimated_rainfall_mm != null ? `<div class="text-xs text-gray-300">Est. Rain: ${Number(p.estimated_rainfall_mm).toFixed(1)} ± ${Number(p.uncertainty_mm ?? 0).toFixed(1)} mm/hr</div>` : "") +
-            `<div class="text-xs text-gray-500 italic">Simulated GP estimate</div>`
+            `<div class="text-xs font-semibold text-ink font-mono">${p.farm_id}</div>` +
+            `<div class="text-xs text-ink-soft">Risk: <span class="capitalize font-bold" style="color:${p.colour}">${p.risk_category}</span></div>` +
+            (p.estimated_rainfall_mm != null ? `<div class="text-xs text-ink-soft">Est. Rain: ${Number(p.estimated_rainfall_mm).toFixed(1)} ± ${Number(p.uncertainty_mm ?? 0).toFixed(1)} mm/hr</div>` : "") +
+            `<div class="text-xs text-ink-faint italic">Simulated GP estimate</div>`
           )
           .addTo(map);
       });
@@ -731,7 +731,7 @@ export default function MapView({
       <div ref={containerRef} className="w-full h-full" />
 
       {/* Satellite imagery note */}
-      <div className="absolute top-2 left-2 z-10 bg-black/60 text-xs text-gray-300 px-2 py-1 rounded pointer-events-none">
+      <div className="absolute top-2 left-2 z-10 bg-ink/40 text-xs text-ink-soft px-2 py-1 rounded pointer-events-none">
         Basemap: ESRI World Imagery — imagery may be several weeks old. Coloured overlays are simulated.
       </div>
 
@@ -739,7 +739,7 @@ export default function MapView({
       <button
         onClick={() => setIs3D(v => !v)}
         className={`absolute bottom-8 right-24 z-10 text-xs font-semibold px-3 py-1.5 rounded-lg shadow border transition ${
-          is3D ? "bg-brand-blue text-white border-brand-blue" : "bg-navy-800/90 text-white border-navy-600 hover:bg-navy-700"
+          is3D ? "bg-accent text-white border-accent" : "bg-surface/90 text-white border-line-strong hover:bg-sunken"
         }`}
       >
         {is3D ? "3D ✓" : "3D View"}
@@ -752,20 +752,20 @@ export default function MapView({
       <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1">
         <form onSubmit={handleFarmSearch} className="flex gap-1.5">
           <input
-            className="bg-navy-800/90 border border-navy-600 rounded-lg px-3 py-1.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-brand-blue w-36"
+            className="bg-surface/90 border border-line-strong rounded-xl px-3 py-1.5 text-ink text-sm placeholder-gray-500 focus:outline-none focus:border-accent w-36"
             placeholder="Farm ID…"
             value={searchId}
             onChange={e => { setSearchId(e.target.value); setSearchError(null); }}
           />
           <button
             type="submit"
-            className="bg-brand-blue text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition"
+            className="bg-accent text-white text-xs font-semibold px-3 py-1.5 rounded-full hover:opacity-90 transition"
           >
             Go
           </button>
         </form>
         {searchError && (
-          <span className="bg-red-900/80 text-red-300 text-xs px-2 py-1 rounded">{searchError}</span>
+          <span className="bg-red-50 text-red-700 text-xs px-2 py-1 rounded">{searchError}</span>
         )}
       </div>
 
@@ -793,15 +793,15 @@ interface LayerControlsProps {
 }
 
 const LAYER_LABELS: { key: keyof LayerVisibility; label: string; colour: string }[] = [
-  { key: "farms",            label: "Farm boundaries",        colour: "bg-green-500" },
-  { key: "district",         label: "District boundary",      colour: "bg-blue-500" },
+  { key: "farms",            label: "Farm boundaries",        colour: "bg-accent" },
+  { key: "district",         label: "District boundary",      colour: "bg-accent" },
   { key: "sensors_rainfall", label: "Rainfall gauges",        colour: "bg-purple-400" },
   { key: "sensors_water",    label: "Water-level gauges",     colour: "bg-sky-400" },
-  { key: "water",            label: "Rivers & water bodies",  colour: "bg-cyan-400" },
+  { key: "water",            label: "Rivers & water bodies",  colour: "bg-accent" },
   { key: "rainfall_overlay", label: "Rainfall intensity (sim)", colour: "bg-indigo-400" },
   { key: "flood_overlay",    label: "Flood area (sim)",        colour: "bg-red-500" },
-  { key: "sensor_trust",     label: "Sensor trust (Stage 5)",  colour: "bg-emerald-400" },
-  { key: "risk_overlay",     label: "Farm risk (Stage 6)",     colour: "bg-amber-400" },
+  { key: "sensor_trust",     label: "Sensor trust",  colour: "bg-emerald-400" },
+  { key: "risk_overlay",     label: "Farm risk",     colour: "bg-amber-400" },
 ];
 
 function LayerControls({ layers, onToggle }: LayerControlsProps) {
@@ -810,13 +810,13 @@ function LayerControls({ layers, onToggle }: LayerControlsProps) {
     <div className="absolute bottom-8 right-2 z-10">
       <button
         onClick={() => setOpen(o => !o)}
-        className="bg-navy-800/90 border border-navy-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow hover:bg-navy-700 transition"
+        className="bg-surface/90 border border-line-strong text-ink text-xs font-semibold px-3 py-1.5 rounded-xl shadow hover:bg-sunken transition"
       >
         Layers {open ? "▲" : "▼"}
       </button>
       {open && (
-        <div className="mt-1 bg-navy-800/95 border border-navy-600 rounded-xl p-3 space-y-2 w-52 shadow-xl">
-          <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Map Layers</p>
+        <div className="mt-1 bg-surface/95 border border-line-strong rounded-2xl p-3 space-y-2 w-52 shadow-xl">
+          <p className="text-xs text-ink-muted font-semibold uppercase tracking-wide mb-1">Map Layers</p>
           {LAYER_LABELS.map(({ key, label, colour }) => (
             <label key={key} className="flex items-center gap-2 cursor-pointer group">
               <input
@@ -825,8 +825,8 @@ function LayerControls({ layers, onToggle }: LayerControlsProps) {
                 onChange={() => onToggle(key)}
                 className="sr-only"
               />
-              <span className={`w-3 h-3 rounded-sm flex-shrink-0 ${layers[key] ? colour : "bg-gray-600"} transition`} />
-              <span className={`text-xs ${layers[key] ? "text-white" : "text-gray-500"} transition`}>{label}</span>
+              <span className={`w-3 h-3 rounded-sm flex-shrink-0 ${layers[key] ? colour : "bg-sunken"} transition`} />
+              <span className={`text-xs ${layers[key] ? "text-ink" : "text-ink-faint"} transition`}>{label}</span>
             </label>
           ))}
         </div>
@@ -843,24 +843,24 @@ function MapLegend() {
     <div className="absolute bottom-8 left-2 z-10">
       <button
         onClick={() => setOpen(o => !o)}
-        className="bg-navy-800/90 border border-navy-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow hover:bg-navy-700 transition"
+        className="bg-surface/90 border border-line-strong text-ink text-xs font-semibold px-3 py-1.5 rounded-xl shadow hover:bg-sunken transition"
       >
         Legend {open ? "▲" : "▼"}
       </button>
       {open && (
-        <div className="mt-1 bg-navy-800/95 border border-navy-600 rounded-xl p-3 space-y-1.5 w-52 shadow-xl">
-          <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Legend</p>
+        <div className="mt-1 bg-surface/95 border border-line-strong rounded-2xl p-3 space-y-1.5 w-52 shadow-xl">
+          <p className="text-xs text-ink-muted font-semibold uppercase tracking-wide mb-1">Legend</p>
           <LegendItem colour="bg-green-500/40 border-green-500" label="Active policy farm" />
-          <LegendItem colour="bg-gray-500/40 border-gray-500" label="No active policy" />
+          <LegendItem colour="bg-gray-500/40 border-line-strong" label="No active policy" />
           <LegendItem colour="bg-blue-500/20 border-blue-500 border-dashed" label="Demo district boundary (simulated)" />
           <LegendItem colour="bg-purple-400 rounded-full w-3 h-3" label="Rainfall gauge (simulated)" dot />
           <LegendItem colour="bg-sky-400 rounded-full w-3 h-3" label="Water-level gauge (simulated)" dot />
-          <LegendItem colour="bg-cyan-400/40 border-cyan-400" label="River / water body (simulated)" />
+          <LegendItem colour="bg-accent/40 border-accent" label="River / water body (simulated)" />
           <LegendItem colour="bg-indigo-400/40 border-indigo-400" label="Rainfall intensity overlay (simulated)" />
           <LegendItem colour="bg-red-500/40 border-red-500 border-dashed" label="Flood-affected area (simulated)" />
           <LegendItem colour="bg-emerald-400 rounded-full w-3 h-3" label="Trusted sensor (green = high trust)" dot />
           <LegendItem colour="bg-red-500 rounded-full w-3 h-3 border-2 border-red-400" label="Flagged sensor — investigate" dot />
-          <p className="text-xs text-gray-500 italic pt-1 border-t border-navy-600 mt-1">
+          <p className="text-xs text-ink-faint italic pt-1 border-t border-line-strong mt-1">
             Coloured overlays are simulated demo data, not verified geographic information.
           </p>
         </div>
@@ -876,7 +876,7 @@ function LegendItem({ colour, label, dot }: { colour: string; label: string; dot
         ? <span className={`${colour} flex-shrink-0`} />
         : <span className={`w-4 h-3 border flex-shrink-0 ${colour}`} />
       }
-      <span className="text-xs text-gray-300">{label}</span>
+      <span className="text-xs text-ink-soft">{label}</span>
     </div>
   );
 }
@@ -892,23 +892,23 @@ interface FarmDetailPanelProps {
 
 function FarmDetailPanel({ farm, loading, onClose, imageUrl }: FarmDetailPanelProps) {
   return (
-    <div className="absolute top-12 right-2 z-20 w-72 bg-navy-800/95 border border-navy-600 rounded-xl shadow-2xl overflow-hidden">
+    <div className="absolute top-12 right-2 z-20 w-72 bg-surface/95 border border-line-strong rounded-xl shadow-2xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-navy-600 bg-navy-700/60">
-        <span className="text-sm font-semibold text-white">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-line-strong bg-sunken/60">
+        <span className="text-sm font-semibold text-ink">
           {loading ? "Loading farm…" : (farm?.name ?? "Farm Details")}
         </span>
-        <button onClick={onClose} className="text-gray-400 hover:text-white transition text-lg leading-none">×</button>
+        <button onClick={onClose} className="text-ink-muted hover:text-ink transition text-lg leading-none">×</button>
       </div>
 
       {loading && (
-        <div className="p-6 text-center text-gray-400 text-sm">Loading…</div>
+        <div className="p-6 text-center text-ink-muted text-sm">Loading…</div>
       )}
 
       {!loading && farm && (
         <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto text-sm">
           {imageUrl && (
-            <img src={imageUrl} alt="Farmer-traced boundary" className="w-full rounded-lg border border-navy-600" />
+            <img src={imageUrl} alt="Farmer-traced boundary" className="w-full rounded-lg border border-line-strong" />
           )}
           {/* Identity */}
           <Row label="Farm ID" value={`#${farm.farm_id}`} />
@@ -924,11 +924,11 @@ function FarmDetailPanel({ farm, loading, onClose, imageUrl }: FarmDetailPanelPr
           )}
 
           {/* Policy */}
-          <div className="border-t border-navy-600 pt-2">
+          <div className="border-t border-line-strong pt-2">
             <Row label="Policy" value={
               farm.policy
                 ? <span className="font-mono text-xs">{farm.policy.policy_number}</span>
-                : <span className="text-gray-500">None</span>
+                : <span className="text-ink-faint">None</span>
             } />
             <Row label="Status" value={
               <PolicyStatusBadge status={farm.policy_status} />
@@ -943,33 +943,21 @@ function FarmDetailPanel({ farm, loading, onClose, imageUrl }: FarmDetailPanelPr
             )}
           </div>
 
-          {/* Risk assessment (Stage 6) */}
-          <div className="border-t border-navy-600 pt-2 space-y-1.5">
+          {/* Risk assessment */}
+          <div className="border-t border-line-strong pt-2 space-y-1.5">
             {farm.estimated_rainfall_mm !== null && farm.estimated_rainfall_mm !== undefined ? (
               <Row
                 label="Estimated rainfall"
-                value={<span className="font-mono text-white text-xs">{farm.estimated_rainfall_mm.toFixed(1)} mm/hr</span>}
+                value={<span className="font-mono text-ink text-xs">{farm.estimated_rainfall_mm.toFixed(1)} mm/hr</span>}
               />
-            ) : (
-              <Placeholder label="Estimated rainfall" note="Risk assessment — Stage 6" />
-            )}
+            ) : (null)}
             {farm.risk_category ? (
               <Row
                 label="Risk category"
-                value={<span className="capitalize font-semibold text-xs text-brand-blue">{farm.risk_category}</span>}
+                value={<span className="capitalize font-semibold text-xs text-accent">{farm.risk_category}</span>}
               />
-            ) : (
-              <Placeholder label="Risk category" note="Risk assessment — Stage 6" />
-            )}
-            <Placeholder label="Claim status" note="Claims — Stage 8" />
+            ) : (null)}
           </div>
-
-          {/* Stage notes */}
-          {farm.stage_notes.length > 0 && (
-            <div className="bg-navy-700/50 rounded-lg p-2 text-xs text-gray-500 space-y-0.5">
-              {farm.stage_notes.map((n, i) => <p key={i}>{n}</p>)}
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -979,27 +967,18 @@ function FarmDetailPanel({ farm, loading, onClose, imageUrl }: FarmDetailPanelPr
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-2">
-      <span className="text-gray-400 flex-shrink-0">{label}</span>
-      <span className="text-white text-right">{value}</span>
-    </div>
-  );
-}
-
-function Placeholder({ label, note }: { label: string; note: string }) {
-  return (
-    <div className="flex justify-between gap-2">
-      <span className="text-gray-500">{label}</span>
-      <span className="text-gray-600 text-xs italic">{note}</span>
+      <span className="text-ink-muted flex-shrink-0">{label}</span>
+      <span className="text-ink text-right">{value}</span>
     </div>
   );
 }
 
 function PolicyStatusBadge({ status }: { status: string }) {
   const colour =
-    status === "active"    ? "bg-green-900/50 text-green-300 border-green-700" :
-    status === "expired"   ? "bg-yellow-900/50 text-yellow-300 border-yellow-700" :
-    status === "cancelled" ? "bg-red-900/50 text-red-300 border-red-700" :
-                             "bg-navy-700 text-gray-400 border-navy-600";
+    status === "active"    ? "bg-green-50 text-green-700 border-green-200" :
+    status === "expired"   ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
+    status === "cancelled" ? "bg-red-50 text-red-700 border-red-200" :
+                             "bg-sunken text-ink-muted border-line-strong";
   return (
     <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${colour}`}>{status}</span>
   );

@@ -1,12 +1,12 @@
 /**
- * Claims review (Stage 9): see claim recommendations from the deterministic claim
+ * Claims review (): see claim recommendations from the deterministic claim
  * engine, approve / hold / reject them with a reason, and run the SIMULATED payment.
  * No real money moves anywhere in this screen.
  */
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { listPolicies, PolicyOut } from "../../api/stage2";
+import { listPolicies, PolicyOut } from "../../api/registry";
 import {
   Claim, ClaimCalculation, ClaimStats, Reconciliation,
   calculateClaim, decideClaim, getClaimStats, getReconciliation, listClaims, payClaim, resolveDispute,
@@ -15,13 +15,13 @@ import {
 const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 
 const STATUS_STYLE: Record<string, string> = {
-  AWAITING_APPROVAL: "bg-amber-900/40 text-amber-300 border-amber-700",
-  UNDER_INVESTIGATION: "bg-orange-900/40 text-orange-300 border-orange-700",
-  APPROVED: "bg-blue-900/40 text-blue-300 border-blue-700",
-  PAID: "bg-green-900/40 text-green-300 border-green-700",
-  ON_HOLD: "bg-gray-700/60 text-gray-300 border-gray-500",
-  REJECTED: "bg-red-900/40 text-red-300 border-red-700",
-  DISPUTED: "bg-purple-900/40 text-purple-300 border-purple-700",
+  AWAITING_APPROVAL: "bg-amber-50 text-amber-700 border-amber-200",
+  UNDER_INVESTIGATION: "bg-orange-50 text-orange-700 border-orange-200",
+  APPROVED: "bg-blue-50 text-accent border-blue-200",
+  PAID: "bg-green-50 text-green-700 border-green-200",
+  ON_HOLD: "bg-sunken text-ink-soft border-line-strong",
+  REJECTED: "bg-red-50 text-red-700 border-red-200",
+  DISPUTED: "bg-purple-50 text-purple-700 border-purple-200",
 };
 
 const FILTERS = ["ALL", "AWAITING_APPROVAL", "UNDER_INVESTIGATION", "DISPUTED", "APPROVED", "PAID", "ON_HOLD", "REJECTED"];
@@ -57,23 +57,23 @@ export default function ClaimsPage() {
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <Link to="/insurer" className="text-sm text-brand-blue hover:underline">← Dashboard</Link>
-          <h1 className="text-2xl font-bold text-white mt-1">Claims Review</h1>
-          <p className="text-sm text-gray-400">
+          <Link to="/insurer" className="text-sm text-accent hover:underline">← Dashboard</Link>
+          <h1 className="text-2xl font-bold text-ink mt-1">Claims Review</h1>
+          <p className="text-sm text-ink-muted">
             Recommendations come from the deterministic claim engine. A person approves; payments are simulated.
           </p>
         </div>
         {recon && (
           <span className={`text-xs px-3 py-1 rounded-full border ${recon.balanced
-            ? "bg-green-900/40 text-green-300 border-green-700" : "bg-red-900/40 text-red-300 border-red-700"}`}
+            ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}
             title={recon.issues.join("\n")}>
             {recon.balanced ? "✓ Payments reconcile" : `⚠ ${recon.issues.length} reconciliation issue(s)`}
           </span>
         )}
       </div>
 
-      {error && <div className="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">{error}</div>}
-      {notice && <div className="bg-green-900/30 border border-green-700 text-green-200 rounded-lg px-4 py-3 text-sm">{notice}</div>}
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{error}</div>}
+      {notice && <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm">{notice}</div>}
 
       {stats && <StatCards s={stats} />}
 
@@ -83,15 +83,15 @@ export default function ClaimsPage() {
         {FILTERS.map((f) => (
           <button key={f} onClick={() => setFilter(f)}
             className={`text-xs px-3 py-1 rounded-full border transition ${filter === f
-              ? "bg-brand-blue text-white border-brand-blue" : "border-navy-600 text-gray-400 hover:text-white"}`}>
+              ? "bg-accent text-white border-accent" : "border-line-strong text-ink-muted hover:text-white"}`}>
             {f === "ALL" ? "All" : f.replace(/_/g, " ").toLowerCase()}
           </button>
         ))}
       </div>
 
-      {loading && <p className="text-gray-400">Loading claims…</p>}
+      {loading && <p className="text-ink-muted">Loading claims…</p>}
       {!loading && shown.length === 0 && (
-        <div className="bg-navy-800 border border-navy-700 rounded-xl p-8 text-center text-gray-400 text-sm">
+        <div className="bg-surface shadow-card border border-line rounded-2xl p-8 text-center text-ink-muted text-sm">
           No claims here yet. Use “New claim calculation” above to create one.
         </div>
       )}
@@ -129,19 +129,19 @@ function DisputePanel({ claim, canDecide, onChanged, onError }: {
   }
 
   return (
-    <div className="rounded-lg border border-purple-700 bg-purple-900/20 p-3 space-y-2">
-      <p className="text-sm text-purple-200 font-semibold">Farmer challenge #{d.id}: {d.category.replace(/_/g, " ")}</p>
-      <p className="text-sm text-gray-200">“{d.reason}”</p>
-      <p className="text-[11px] text-gray-400">Claim was <b>{(claim.pre_dispute_status ?? "").toLowerCase()}</b> before the challenge. {wasPaid ? "Upholding queues an additional payment as a separate claim; the original payment is never repeated." : "Upholding sends it back to the approval queue for a new decision."}</p>
+    <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 space-y-2">
+      <p className="text-sm text-purple-700 font-semibold">Farmer challenge #{d.id}: {d.category.replace(/_/g, " ")}</p>
+      <p className="text-sm text-ink-soft">“{d.reason}”</p>
+      <p className="text-[11px] text-ink-muted">Claim was <b>{(claim.pre_dispute_status ?? "").toLowerCase()}</b> before the challenge. {wasPaid ? "Upholding queues an additional payment as a separate claim; the original payment is never repeated." : "Upholding sends it back to the approval queue for a new decision."}</p>
       {canDecide && (
         <div className="flex gap-2 flex-wrap items-center">
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Your answer to the farmer (required)"
-            className="flex-1 min-w-[200px] bg-navy border border-navy-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500" />
+            className="flex-1 min-w-[200px] bg-paper border border-line rounded-lg px-3 py-1.5 text-sm text-ink placeholder-gray-500" />
           <input value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} inputMode="decimal"
             placeholder={wasPaid ? "Additional ₹ to pay" : "Corrected ₹ (optional)"}
-            className="w-44 bg-navy border border-navy-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500" />
-          <button disabled={busy} onClick={() => answer("uphold")} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-green text-navy disabled:opacity-40">Uphold</button>
-          <button disabled={busy} onClick={() => answer("dismiss")} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-navy-700 text-white disabled:opacity-40">Dismiss</button>
+            className="w-44 bg-paper border border-line rounded-lg px-3 py-1.5 text-sm text-ink placeholder-gray-500" />
+          <button disabled={busy} onClick={() => answer("uphold")} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-accent text-white disabled:opacity-40">Uphold</button>
+          <button disabled={busy} onClick={() => answer("dismiss")} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-sunken text-ink disabled:opacity-40">Dismiss</button>
         </div>
       )}
     </div>
@@ -160,10 +160,10 @@ function StatCards({ s }: { s: ClaimStats }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
       {items.map(([label, n, amt]) => (
-        <div key={label} className="bg-navy-800 border border-navy-700 rounded-xl p-3">
-          <p className="text-xs text-gray-400">{label}</p>
-          <p className="text-xl font-bold text-white">{n !== "" ? n : amt}</p>
-          {n !== "" && amt && <p className="text-xs text-gray-500">{amt}</p>}
+        <div key={label} className="bg-surface shadow-card border border-line rounded-2xl p-3">
+          <p className="text-xs text-ink-muted">{label}</p>
+          <p className="text-xl font-bold text-ink">{n !== "" ? n : amt}</p>
+          {n !== "" && amt && <p className="text-xs text-ink-faint">{amt}</p>}
         </div>
       ))}
     </div>
@@ -183,10 +183,10 @@ const ACTIONS: Record<string, Action[]> = {
   ON_HOLD: ["approve", "resume", "reject"],
 };
 const BTN: Record<Action, { label: string; cls: string }> = {
-  approve: { label: "Approve", cls: "bg-brand-green text-navy" },
-  hold: { label: "Hold", cls: "bg-navy-700 text-white" },
-  investigate: { label: "Investigate", cls: "bg-navy-700 text-white" },
-  resume: { label: "Investigation done, ready to approve", cls: "bg-navy-700 text-white" },
+  approve: { label: "Approve", cls: "bg-accent text-white" },
+  hold: { label: "Hold", cls: "bg-sunken text-ink" },
+  investigate: { label: "Investigate", cls: "bg-sunken text-ink" },
+  resume: { label: "Investigation done, ready to approve", cls: "bg-sunken text-ink" },
   reject: { label: "Reject", cls: "bg-red-800 text-white" },
 };
 
@@ -222,30 +222,30 @@ function ClaimCard({ claim, canDecide, onChanged, onError }: {
   const decidable = actions.length > 0;
 
   return (
-    <div className="bg-navy-800 border border-navy-700 rounded-xl p-4 space-y-3">
+    <div className="bg-surface shadow-card border border-line rounded-2xl p-4 space-y-3">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <p className="text-white font-semibold">{inr(claim.recommended_amount)}
-            <span className="text-xs text-gray-500 font-normal ml-2">recommended · {claim.outcome}</span></p>
-          <p className="text-xs text-gray-400">Farm {claim.farm_id} · Policy {claim.policy_id} · Event {claim.event_id}</p>
+          <p className="text-ink font-semibold">{inr(claim.recommended_amount)}
+            <span className="text-xs text-ink-faint font-normal ml-2">recommended · {claim.outcome}</span></p>
+          <p className="text-xs text-ink-muted">Farm {claim.farm_id} · Policy {claim.policy_id} · Event {claim.event_id}</p>
         </div>
-        <span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_STYLE[claim.status] ?? "border-navy-600 text-gray-300"}`}>
+        <span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_STYLE[claim.status] ?? "border-line-strong text-ink-soft"}`}>
           {claim.status.replace(/_/g, " ")}
         </span>
       </div>
 
-      <p className="text-sm text-gray-300">
+      <p className="text-sm text-ink-soft">
         Rainfall <b>{calc.estimated_rainfall_mm} mm</b>
         {calc.rainfall_sigma_mm > 0 && <> ± {calc.rainfall_sigma_mm}</>} · trigger {calc.trigger_start_mm} mm → full {calc.trigger_full_mm} mm
         · sensor trust {calc.sensor_trust ?? "n/a"}
       </p>
 
-      <button onClick={() => setOpen((o) => !o)} className="text-xs text-brand-blue hover:underline">
+      <button onClick={() => setOpen((o) => !o)} className="text-xs text-accent hover:underline">
         {open ? "Hide" : "Show"} reasons & history
       </button>
       {open && <Details calc={calc} claim={claim} />}
 
-      {claim.supplementary && <p className="text-xs text-purple-300">Additional payment after the farmer's challenge was upheld (parent claim {claim.parent_claim_id}).</p>}
+      {claim.supplementary && <p className="text-xs text-purple-700">Additional payment after the farmer's challenge was upheld (parent claim {claim.parent_claim_id}).</p>}
       {claim.status === "DISPUTED" && (
         <DisputePanel claim={claim} canDecide={canDecide}
           onChanged={onChanged} onError={onError} />
@@ -254,7 +254,7 @@ function ClaimCard({ claim, canDecide, onChanged, onError }: {
       {canDecide && decidable && (
         <div className="flex gap-2 flex-wrap items-center">
           <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)"
-            className="flex-1 min-w-[200px] bg-navy border border-navy-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500" />
+            className="flex-1 min-w-[200px] bg-paper border border-line rounded-lg px-3 py-1.5 text-sm text-ink placeholder-gray-500" />
           {actions.map((a) => (
             <button key={a} disabled={busy || (a === "approve" && claim.recommended_amount <= 0)} onClick={() => act(a)}
               className={`text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40 ${BTN[a].cls}`}>{BTN[a].label}</button>
@@ -264,12 +264,12 @@ function ClaimCard({ claim, canDecide, onChanged, onError }: {
 
       {canDecide && claim.status === "APPROVED" && (
         <button disabled={busy} onClick={pay}
-          className="text-sm font-semibold px-4 py-2 rounded-lg bg-brand-blue text-white disabled:opacity-40">
+          className="text-sm font-semibold px-4 py-2 rounded-full bg-accent text-white disabled:opacity-40">
           {busy ? "Processing…" : `Send simulated payment of ${inr(claim.recommended_amount)}`}
         </button>
       )}
       {claim.status === "PAID" && (
-        <p className="text-xs text-green-300">Paid (simulated) · transaction {claim.transaction_ref}</p>
+        <p className="text-xs text-green-700">Paid (simulated) · transaction {claim.transaction_ref}</p>
       )}
     </div>
   );
@@ -279,16 +279,16 @@ function Details({ calc, claim }: { calc: ClaimCalculation; claim: Claim }) {
   return (
     <div className="grid md:grid-cols-2 gap-4 text-xs">
       <div className="space-y-1">
-        <p className="text-gray-400 uppercase tracking-wide">Why this recommendation</p>
-        <ul className="list-disc pl-4 text-gray-300 space-y-0.5">{calc.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
-        <p className="text-gray-500 pt-1">
+        <p className="text-ink-muted uppercase tracking-wide">Why this recommendation</p>
+        <ul className="list-disc pl-4 text-ink-soft space-y-0.5">{calc.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
+        <p className="text-ink-faint pt-1">
           Severity {(calc.severity * 100).toFixed(0)}% of {inr(calc.sum_insured)} insured · engine {calc.engine_version}
           {calc.cap_applied && " · cap applied"}
         </p>
       </div>
       <div className="space-y-1">
-        <p className="text-gray-400 uppercase tracking-wide">History</p>
-        <ul className="space-y-0.5 text-gray-300">
+        <p className="text-ink-muted uppercase tracking-wide">History</p>
+        <ul className="space-y-0.5 text-ink-soft">
           {claim.history.map((h, i) => (
             <li key={i}>{new Date(h.at).toLocaleString()} · {h.from ?? "—"} → <b>{h.to}</b> · {h.reason}</li>
           ))}
@@ -329,10 +329,10 @@ function NewClaimPanel({ onCreated, onError }: { onCreated: (m: string) => void;
     finally { setBusy(false); }
   }
 
-  const cls = "w-full bg-navy border border-navy-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500";
+  const cls = "w-full bg-paper border border-line rounded-lg px-3 py-1.5 text-sm text-ink placeholder-gray-500";
   return (
-    <div className="bg-navy-800 border border-navy-700 rounded-xl p-4">
-      <button onClick={() => setOpen((o) => !o)} className="text-sm font-semibold text-white">
+    <div className="bg-surface shadow-card border border-line rounded-2xl p-4">
+      <button onClick={() => setOpen((o) => !o)} className="text-sm font-semibold text-ink">
         {open ? "▾" : "▸"} New claim calculation
       </button>
       {open && (
@@ -349,14 +349,14 @@ function NewClaimPanel({ onCreated, onError }: { onCreated: (m: string) => void;
           </div>
           <div className="flex gap-2">
             <button disabled={!valid || busy} onClick={() => run(true)}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-navy-700 text-white disabled:opacity-40">Preview</button>
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-sunken text-ink disabled:opacity-40">Preview</button>
             <button disabled={!valid || busy} onClick={() => run(false)}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-green text-navy disabled:opacity-40">Create claim</button>
+              className="text-xs font-semibold px-3 py-1.5 rounded-full bg-accent text-white disabled:opacity-40">Create claim</button>
           </div>
           {preview && (
-            <div className="text-sm text-gray-200 bg-navy border border-navy-700 rounded-lg p-3 space-y-1">
+            <div className="text-sm text-ink-soft bg-paper border border-line rounded-lg p-3 space-y-1">
               <p>Outcome <b>{preview.outcome}</b> · recommended <b>{inr(preview.recommended_amount)}</b> (full entitlement {inr(preview.entitlement)})</p>
-              <ul className="list-disc pl-5 text-xs text-gray-400">{preview.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
+              <ul className="list-disc pl-5 text-xs text-ink-muted">{preview.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
             </div>
           )}
         </div>

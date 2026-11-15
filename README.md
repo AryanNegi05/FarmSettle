@@ -1,4 +1,4 @@
-# ParaTrust
+# FarmTrust
 
 Agentic climate insurance intelligence & financial risk platform (B2B2C). All payments are **simulated**. Full plan: [docs/ROADMAP.md](docs/ROADMAP.md).
 

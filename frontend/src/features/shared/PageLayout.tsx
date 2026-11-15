@@ -13,14 +13,14 @@ export default function PageLayout({ title, subtitle, backTo, children }: PageLa
       {backTo && (
         <Link
           to={backTo}
-          className="inline-flex items-center gap-1 text-sm text-brand-blue hover:underline"
+          className="inline-flex items-center gap-1 text-sm text-accent hover:underline"
         >
           ← Back
         </Link>
       )}
       <div>
-        <h1 className="text-2xl font-bold text-white">{title}</h1>
-        {subtitle && <p className="text-gray-400 mt-1 text-sm">{subtitle}</p>}
+        <h1 className="text-2xl font-bold text-ink">{title}</h1>
+        {subtitle && <p className="text-ink-muted mt-1 text-sm">{subtitle}</p>}
       </div>
       {children}
     </div>

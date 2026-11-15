@@ -1,25 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { listPolicies, PolicyOut } from "../../api/stage2";
+import { listPolicies, PolicyOut } from "../../api/registry";
 
 type StatusFilter = "all" | "active" | "expired" | "cancelled";
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 
 const STATUS_STYLE: Record<string, string> = {
-  active: "bg-green-900/50 text-green-300 border-green-700",
-  expired: "bg-red-900/50 text-red-300 border-red-700",
-  cancelled: "bg-gray-700 text-gray-400 border-gray-600",
+  active: "bg-green-50 text-green-700 border-green-200",
+  expired: "bg-red-50 text-red-700 border-red-200",
+  cancelled: "bg-sunken text-ink-muted border-line-strong",
 };
 
 /** "ends in 40 days", "ended 3 days ago", based on the coverage end date. */
 function endsLabel(end: string): { text: string; tone: string } {
   const days = Math.round((new Date(end).getTime() - Date.now()) / 86_400_000);
-  if (isNaN(days)) return { text: "", tone: "text-gray-500" };
-  if (days < 0) return { text: `ended ${-days} day${days === -1 ? "" : "s"} ago`, tone: "text-red-300" };
-  if (days <= 30) return { text: `ends in ${days} day${days === 1 ? "" : "s"}`, tone: "text-amber-300" };
-  return { text: `ends in ${days} days`, tone: "text-gray-500" };
+  if (isNaN(days)) return { text: "", tone: "text-ink-faint" };
+  if (days < 0) return { text: `ended ${-days} day${days === -1 ? "" : "s"} ago`, tone: "text-red-700" };
+  if (days <= 30) return { text: `ends in ${days} day${days === 1 ? "" : "s"}`, tone: "text-amber-700" };
+  return { text: `ends in ${days} days`, tone: "text-ink-faint" };
 }
 
 export default function PolicyListPage() {
@@ -73,30 +73,30 @@ export default function PolicyListPage() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">Policies</h1>
-          <p className="text-gray-400 text-sm">Every issued policy, with its farmer, farm and rain trigger.</p>
+          <h1 className="text-2xl font-bold text-ink">Policies</h1>
+          <p className="text-ink-muted text-sm">Every issued policy, with its farmer, farm and rain trigger.</p>
         </div>
         {canEdit && (
-          <Link to="/insurer/policies/new" className="bg-brand-blue text-white font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition text-sm">
+          <Link to="/insurer/policies/new" className="bg-accent text-white font-semibold px-4 py-2 rounded-full hover:opacity-90 transition text-sm">
             + New Policy
           </Link>
         )}
       </div>
 
       {flash && (
-        <div className="bg-green-900/30 border border-green-700 text-green-200 rounded-lg px-4 py-3 text-sm flex items-center justify-between gap-3">
+        <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm flex items-center justify-between gap-3">
           <span>✓ {flash}</span>
-          <button onClick={() => setFlash(null)} className="text-green-300 hover:text-white">✕</button>
+          <button onClick={() => setFlash(null)} className="text-green-700 hover:text-ink">✕</button>
         </div>
       )}
-      {error && <div className="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">{error}</div>}
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">{error}</div>}
 
       {/* Summary */}
       {!loading && !error && policies.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Stat label="Policies" value={String(counts.all)} />
-          <Stat label="Active" value={String(counts.active)} tone="text-green-300" />
-          <Stat label="Needing attention" value={String(policies.filter((p) => p.status === "active" && endsLabel(p.coverage_end).tone === "text-amber-300").length)} sub="ending within 30 days" tone="text-amber-300" />
+          <Stat label="Active" value={String(counts.active)} tone="text-green-700" />
+          <Stat label="Needing attention" value={String(policies.filter((p) => p.status === "active" && endsLabel(p.coverage_end).tone === "text-amber-700").length)} sub="ending within 30 days" tone="text-amber-700" />
           <Stat label="Active sum insured" value={inr(counts.insured)} />
         </div>
       )}
@@ -106,34 +106,34 @@ export default function PolicyListPage() {
         <div className="flex gap-1.5 flex-wrap">
           {tabs.map((t) => (
             <button key={t.id} onClick={() => setStatus(t.id)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition ${status === t.id ? "bg-brand-blue text-white border-brand-blue" : "border-navy-600 text-gray-400 hover:text-white"}`}>
+              className={`text-xs px-3 py-1.5 rounded-full border transition ${status === t.id ? "bg-accent text-white border-accent" : "border-line-strong text-ink-muted hover:text-white"}`}>
               {t.label} <span className="opacity-70">({t.n})</span>
             </button>
           ))}
         </div>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search policy #, farmer or farm…"
-          className="w-full sm:w-72 bg-navy border border-navy-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-blue" />
+          className="w-full sm:w-72 bg-paper border border-line rounded-lg px-3 py-2 text-sm text-ink placeholder-gray-500 focus:outline-none focus:border-accent" />
       </div>
 
-      {loading && <p className="text-gray-400">Loading…</p>}
+      {loading && <p className="text-ink-muted">Loading…</p>}
 
       {!loading && !error && policies.length === 0 && (
-        <div className="bg-navy-800 border border-navy-700 rounded-xl p-10 text-center space-y-3">
+        <div className="bg-surface shadow-card border border-line rounded-2xl p-10 text-center space-y-3">
           <p className="text-4xl">📋</p>
-          <p className="text-white font-semibold">No policies yet</p>
-          <p className="text-gray-400 text-sm">A farmer registers a farm first; then you issue a policy for it.</p>
-          {canEdit && <Link to="/insurer/policies/new" className="inline-block bg-brand-blue text-white font-semibold px-5 py-2 rounded-lg text-sm">Create the first policy</Link>}
+          <p className="text-ink font-semibold">No policies yet</p>
+          <p className="text-ink-muted text-sm">A farmer registers a farm first; then you issue a policy for it.</p>
+          {canEdit && <Link to="/insurer/policies/new" className="inline-block bg-accent text-white font-semibold px-5 py-2 rounded-full text-sm">Create the first policy</Link>}
         </div>
       )}
       {!loading && policies.length > 0 && shown.length === 0 && (
-        <div className="bg-navy-800 border border-navy-700 rounded-xl p-8 text-center text-gray-400 text-sm">No policies match your filters.</div>
+        <div className="bg-surface shadow-card border border-line rounded-2xl p-8 text-center text-ink-muted text-sm">No policies match your filters.</div>
       )}
 
       {shown.length > 0 && (
-        <div className="bg-navy-800 border border-navy-700 rounded-xl overflow-x-auto">
+        <div className="bg-surface shadow-card border border-line rounded-2xl overflow-x-auto">
           <table className="w-full text-sm min-w-[860px]">
             <thead>
-              <tr className="border-b border-navy-700 text-gray-400 text-left text-xs uppercase tracking-wide">
+              <tr className="border-b border-line text-ink-muted text-left text-xs uppercase tracking-wide">
                 <th className="px-4 py-3 font-medium">Policy</th>
                 <th className="px-4 py-3 font-medium">Farmer · Farm</th>
                 <th className="px-4 py-3 font-medium">Coverage</th>
@@ -148,26 +148,26 @@ export default function PolicyListPage() {
                 const ends = endsLabel(p.coverage_end);
                 const full = p.rainfall_max_payout_mm ?? (p.rainfall_trigger_mm ? p.rainfall_trigger_mm * 1.5 : null);
                 return (
-                  <tr key={p.id} className={`border-b border-navy-700/50 last:border-b-0 transition ${p.id === highlightId ? "bg-green-900/20" : "hover:bg-navy-700/30"}`}>
-                    <td className="px-4 py-3 font-mono text-brand-blue">{p.policy_number}</td>
+                  <tr key={p.id} className={`border-b border-line/50 last:border-b-0 transition ${p.id === highlightId ? "bg-green-50" : "hover:bg-sunken/30"}`}>
+                    <td className="px-4 py-3 font-mono text-accent">{p.policy_number}</td>
                     <td className="px-4 py-3">
-                      <Link to={`/insurer/farmers/${p.farmer_profile_id}`} className="text-white hover:underline">{p.farmer_name ?? "Farmer"}</Link>
-                      <p className="text-xs text-gray-400">{p.farm_name ?? "Farm"}</p>
+                      <Link to={`/insurer/farmers/${p.farmer_profile_id}`} className="text-ink hover:underline">{p.farmer_name ?? "Farmer"}</Link>
+                      <p className="text-xs text-ink-muted">{p.farm_name ?? "Farm"}</p>
                     </td>
-                    <td className="px-4 py-3 text-gray-300">
+                    <td className="px-4 py-3 text-ink-soft">
                       {p.coverage_start} → {p.coverage_end}
                       {p.status === "active" && ends.text && <p className={`text-xs ${ends.tone}`}>{ends.text}</p>}
                     </td>
-                    <td className="px-4 py-3 text-gray-300">
-                      {p.rainfall_trigger_mm ? <>{p.rainfall_trigger_mm} → {full} <span className="text-xs text-gray-500">mm/hr</span></> : <span className="text-gray-500">not set</span>}
+                    <td className="px-4 py-3 text-ink-soft">
+                      {p.rainfall_trigger_mm ? <>{p.rainfall_trigger_mm} → {full} <span className="text-xs text-ink-faint">mm/hr</span></> : <span className="text-ink-faint">not set</span>}
                     </td>
-                    <td className="px-4 py-3 text-white text-right">{inr(p.sum_insured)}</td>
+                    <td className="px-4 py-3 text-ink text-right">{inr(p.sum_insured)}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${STATUS_STYLE[p.status] ?? "bg-navy-700 text-gray-300 border-navy-600"}`}>{p.status}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${STATUS_STYLE[p.status] ?? "bg-sunken text-ink-soft border-line-strong"}`}>{p.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap space-x-2">
-                      <Link to={`/insurer/command?farm=${p.farm_id}`} className="text-xs text-cyan-300 hover:underline">Map</Link>
-                      {canEdit && <Link to={`/insurer/policies/${p.id}/edit`} className="text-xs bg-navy-700 hover:bg-navy-600 text-white px-2.5 py-1 rounded-lg">Edit</Link>}
+                      <Link to={`/insurer/command?farm=${p.farm_id}`} className="text-xs text-accent hover:underline">Map</Link>
+                      {canEdit && <Link to={`/insurer/policies/${p.id}/edit`} className="text-xs bg-sunken hover:bg-line text-ink px-2.5 py-1 rounded-lg">Edit</Link>}
                     </td>
                   </tr>
                 );
@@ -182,10 +182,10 @@ export default function PolicyListPage() {
 
 function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) {
   return (
-    <div className="bg-navy-800 border border-navy-700 rounded-xl p-3">
-      <p className="text-[11px] uppercase tracking-wider text-gray-400">{label}</p>
-      <p className={`text-xl font-bold ${tone ?? "text-white"}`}>{value}</p>
-      {sub && <p className="text-[11px] text-gray-500">{sub}</p>}
+    <div className="bg-surface shadow-card border border-line rounded-2xl p-3">
+      <p className="text-[11px] uppercase tracking-wider text-ink-muted">{label}</p>
+      <p className={`text-xl font-bold ${tone ?? "text-ink"}`}>{value}</p>
+      {sub && <p className="text-[11px] text-ink-faint">{sub}</p>}
     </div>
   );
 }

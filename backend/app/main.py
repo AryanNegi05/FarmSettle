@@ -21,8 +21,9 @@ from app.api.geo import router as geo_router
 from app.api.simulation import router as simulation_router
 from app.api.sensors import router as sensors_router
 from app.api.risk import router as risk_router
+from app.api.premium import router as premium_router
 
-app = FastAPI(title="ParaTrust API", version="2.0.0 - Firebase")
+app = FastAPI(title="FarmTrust API", version="2.0.0 - Firebase")
 
 app.add_middleware(
     CORSMiddleware,
@@ -46,6 +47,7 @@ app.include_router(backtest_router)
 app.include_router(agents_router)
 app.include_router(my_claims_router)
 app.include_router(basis_risk_router)
+app.include_router(premium_router)
 
 @app.get("/api/health")
 def health() -> dict:

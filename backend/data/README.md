@@ -1,4 +1,4 @@
-# ParaTrust Data Layer
+# FarmTrust Data Layer
 
 ## Quick Start (run once before hackathon)
 

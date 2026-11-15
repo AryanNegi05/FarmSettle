@@ -1,7 +1,7 @@
 {
   "name": "paratrust-scripts",
   "version": "1.0.0",
-  "description": "Setup and migration scripts for ParaTrust",
+  "description": "Setup and migration scripts for FarmTrust",
   "scripts": {
     "setup-demo": "node setup-firebase-demo-accounts.js"
   },

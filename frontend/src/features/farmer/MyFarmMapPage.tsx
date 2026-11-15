@@ -1,5 +1,5 @@
 /**
- * Stage 3 — My Farm Map (farmer)
+ * My Farm Map (farmer)
  *
  * Shows the farmer's own registered farm(s) on a satellite map, centred on
  * the farm centroid. Sensor and water layers are visible for geographic
@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getMyFarms, FarmOut } from "../../api/stage2";
+import { getMyFarms, FarmOut } from "../../api/registry";
 import MapView from "../map/MapView";
 
 export default function MyFarmMapPage() {
@@ -32,34 +32,31 @@ export default function MyFarmMapPage() {
   const autoOpenId = farms.length === 1 && primaryFarm ? primaryFarm.id : null;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden">
       {/* Page header */}
-      <div className="flex items-center justify-between px-6 py-3 bg-navy-800 border-b border-navy-700 flex-shrink-0">
+      <div className="flex items-center justify-between px-6 py-3 bg-surface border-b border-line flex-shrink-0">
         <div className="flex items-center gap-3">
-          <Link to="/farmer" className="text-sm text-brand-blue hover:underline">← Dashboard</Link>
-          <span className="text-gray-600">|</span>
-          <h1 className="text-white font-semibold text-sm">My Farm Map</h1>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/50 text-green-300 border border-green-700">
-            Stage 3 Active
-          </span>
+          <Link to="/farmer" className="text-sm text-accent hover:underline">← Dashboard</Link>
+          <span className="text-ink-faint">|</span>
+          <h1 className="text-ink font-semibold text-sm">My Farm Map</h1>
         </div>
-        <p className="text-xs text-gray-500 hidden sm:block">
+        <p className="text-xs text-ink-faint hidden sm:block">
           Satellite view of your registered farm · Simulated sensors and boundaries
         </p>
       </div>
 
       {/* Loading / error states before map initialises */}
       {loading && (
-        <div className="flex-1 flex items-center justify-center text-gray-400">
+        <div className="flex-1 flex items-center justify-center text-ink-muted">
           Loading your farm data…
         </div>
       )}
       {!loading && error && (
         <div className="flex-1 flex items-center justify-center">
-          <div className="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-5 py-4 text-sm max-w-sm text-center">
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-5 py-4 text-sm max-w-sm text-center">
             {error}
             <div className="mt-3">
-              <Link to="/farmer/farms/new" className="text-brand-blue hover:underline text-xs">
+              <Link to="/farmer/farms/new" className="text-accent hover:underline text-xs">
                 Register a farm →
               </Link>
             </div>
@@ -68,13 +65,13 @@ export default function MyFarmMapPage() {
       )}
       {!loading && !error && farms.length === 0 && (
         <div className="flex-1 flex items-center justify-center">
-          <div className="bg-navy-800 border border-navy-700 rounded-xl p-10 text-center space-y-3 max-w-sm">
+          <div className="bg-surface shadow-card border border-line rounded-2xl p-10 text-center space-y-3 max-w-sm">
             <p className="text-4xl">🗺️</p>
-            <p className="text-white font-semibold">No farms registered yet</p>
-            <p className="text-gray-400 text-sm">Register a farm with GPS coordinates to view it on the satellite map.</p>
+            <p className="text-ink font-semibold">No farms registered yet</p>
+            <p className="text-ink-muted text-sm">Register a farm with GPS coordinates to view it on the satellite map.</p>
             <Link
               to="/farmer/farms/new"
-              className="inline-block mt-2 bg-brand-blue text-white font-semibold px-5 py-2 rounded-lg hover:opacity-90 transition text-sm"
+              className="inline-block mt-2 bg-accent text-white font-semibold px-5 py-2 rounded-full hover:opacity-90 transition text-sm"
             >
               Register Your Farm
             </Link>

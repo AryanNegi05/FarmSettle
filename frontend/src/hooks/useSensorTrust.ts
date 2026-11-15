@@ -1,5 +1,5 @@
 /**
- * React hook that manages Stage 5 sensor fault-detection state for the active
+ * React hook that manages sensor fault-detection state for the active
  * simulation run.
  *
  * Responsibilities:

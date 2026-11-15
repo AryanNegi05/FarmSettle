@@ -3,13 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { canVisit, homeFor } from "../shared/nav";
 
-const DEMO_ACCOUNTS = [
-  { label: "🌾 Farmer", email: "farmer@paratrust.dev", pass: "farmer123" },
-  { label: "🏦 Insurer", email: "insurer@paratrust.dev", pass: "insurer123" },
-  { label: "📋 Auditor", email: "auditor@paratrust.dev", pass: "auditor123" },
-  { label: "⚙️ Admin", email: "admin@paratrust.dev", pass: "admin123" },
-];
-
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -41,83 +34,53 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-[80vh] px-4 py-8">
-      <div className="w-full max-w-md bg-navy-800 rounded-2xl p-8 border border-navy-700 space-y-6">
+      <div className="w-full max-w-md bg-surface shadow-card rounded-3xl p-8 border border-line space-y-6">
         <div className="text-center space-y-1">
-          <h2 className="text-2xl font-bold text-white">Welcome back</h2>
-          <p className="text-gray-400 text-sm">Sign in to your ParaTrust account</p>
+          <h2 className="text-2xl font-bold text-ink">Welcome back</h2>
+          <p className="text-ink-muted text-sm">Sign in to your FarmTrust account</p>
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-red-400 text-sm">
+          <div className="bg-red-500/10 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm">
             {error}
           </div>
         )}
 
-        {/* Quick Demo Login */}
-        <div className="space-y-2">
-          <p className="text-xs uppercase tracking-wider text-gray-400 font-semibold text-center">
-            One-Click Demo Sign In (Firebase)
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {DEMO_ACCOUNTS.map((acc) => (
-              <button
-                key={acc.email}
-                type="button"
-                disabled={loading}
-                onClick={() => {
-                  setEmail(acc.email);
-                  setPassword(acc.pass);
-                  handleLogin(acc.email, acc.pass);
-                }}
-                className="px-3 py-2 text-xs rounded-lg bg-navy-700 hover:bg-navy-600 border border-navy-600 text-gray-200 hover:text-white transition font-medium flex items-center justify-center gap-1.5"
-              >
-                <span>{acc.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="relative flex py-1 items-center">
-          <div className="flex-grow border-t border-navy-700"></div>
-          <span className="flex-shrink mx-3 text-gray-500 text-xs uppercase">or with credentials</span>
-          <div className="flex-grow border-t border-navy-700"></div>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-1.5">Email</label>
+            <label className="block text-sm text-ink-soft mb-1.5">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 bg-navy-700 border border-navy-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-green transition"
+              className="w-full px-4 py-2.5 bg-sunken border border-line-strong rounded-xl text-ink placeholder-gray-500 focus:outline-none focus:border-accent transition"
               placeholder="you@example.com"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-300 mb-1.5">Password</label>
+            <label className="block text-sm text-ink-soft mb-1.5">Password</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 bg-navy-700 border border-navy-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-green transition"
+              className="w-full px-4 py-2.5 bg-sunken border border-line-strong rounded-xl text-ink placeholder-gray-500 focus:outline-none focus:border-accent transition"
               placeholder="••••••••"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-brand-green text-navy font-bold rounded-lg hover:bg-green-400 disabled:opacity-60 transition"
+            className="w-full py-3 bg-accent text-white font-bold rounded-full hover:bg-accent-dark disabled:opacity-60 transition"
           >
             {loading ? "Signing in…" : "Sign In"}
           </button>
         </form>
 
-        <div className="text-center text-sm text-gray-400">
+        <div className="text-center text-sm text-ink-muted">
           Don't have an account?{" "}
-          <Link to="/register" className="text-brand-green hover:underline">Register here</Link>
+          <Link to="/register" className="text-accent hover:underline">Register here</Link>
         </div>
       </div>
     </div>

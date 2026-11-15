@@ -50,8 +50,8 @@ export function LineChart({ xs, series, ranges = [], vlines = [], dots = [], hei
       <svg ref={ref} viewBox={`0 0 ${W} ${H}`} className="w-full select-none" onMouseMove={move} onMouseLeave={() => setHover(null)}>
         {yTicks.map((t) => (
           <g key={t}>
-            <line x1={PAD.l} x2={W - PAD.r} y1={sy(t)} y2={sy(t)} stroke="#334155" strokeWidth={0.6} strokeDasharray={t === 0 ? "" : "2 3"} />
-            <text x={PAD.l - 5} y={sy(t) + 3} textAnchor="end" fontSize={9} fill="#94a3b8">{t >= 10 ? Math.round(t) : t.toFixed(1)}</text>
+            <line x1={PAD.l} x2={W - PAD.r} y1={sy(t)} y2={sy(t)} stroke="#E8E1CE" strokeWidth={0.6} strokeDasharray={t === 0 ? "" : "2 3"} />
+            <text x={PAD.l - 5} y={sy(t) + 3} textAnchor="end" fontSize={9} fill="#6B7168">{t >= 10 ? Math.round(t) : t.toFixed(1)}</text>
           </g>
         ))}
         {ranges.map((r, i) => (
@@ -71,26 +71,26 @@ export function LineChart({ xs, series, ranges = [], vlines = [], dots = [], hei
             opacity={s.opacity ?? 1} strokeLinejoin="round" strokeLinecap="round" />
         ))}
         {dots.map((d, i) => (
-          <circle key={i} cx={sx(d.x)} cy={sy(d.y)} r={d.r ?? 3.5} fill={d.color} stroke="#0f172a" strokeWidth={1}><title>{d.title}</title></circle>
+          <circle key={i} cx={sx(d.x)} cy={sy(d.y)} r={d.r ?? 3.5} fill={d.color} stroke="#FFFEF9" strokeWidth={1}><title>{d.title}</title></circle>
         ))}
         {xTickIdx.map((i) => (
-          <text key={i} x={sx(xs[i])} y={H - 7} textAnchor="middle" fontSize={9} fill="#94a3b8">{fmtX(xs[i])}</text>
+          <text key={i} x={sx(xs[i])} y={H - 7} textAnchor="middle" fontSize={9} fill="#6B7168">{fmtX(xs[i])}</text>
         ))}
-        {xLabel && <text x={W - PAD.r} y={H - 1} textAnchor="end" fontSize={8} fill="#64748b">{xLabel}</text>}
-        {hover != null && <line x1={sx(xs[hover])} x2={sx(xs[hover])} y1={PAD.t} y2={H - PAD.b} stroke="#e2e8f0" strokeWidth={0.8} opacity={0.6} />}
+        {xLabel && <text x={W - PAD.r} y={H - 1} textAnchor="end" fontSize={8} fill="#6B7168">{xLabel}</text>}
+        {hover != null && <line x1={sx(xs[hover])} x2={sx(xs[hover])} y1={PAD.t} y2={H - PAD.b} stroke="#3F4B44" strokeWidth={0.8} opacity={0.6} />}
         {hover != null && series.map((s) => s.values[hover] != null && (
           <circle key={s.id} cx={sx(xs[hover])} cy={sy(s.values[hover] as number)} r={2.6} fill={s.color} />
         ))}
       </svg>
       {hover != null && (
-        <div className="absolute top-1 right-2 text-[10px] bg-slate-900/90 border border-white/10 rounded px-2 py-1 pointer-events-none space-y-0.5">
-          <p className="text-gray-400">{fmtX(xs[hover])}</p>
+        <div className="absolute top-1 right-2 text-[10px] bg-surface/90 border border-line rounded px-2 py-1 pointer-events-none space-y-0.5">
+          <p className="text-ink-muted">{fmtX(xs[hover])}</p>
           {series.filter((s) => s.values[hover] != null).map((s) => (
             <p key={s.id} style={{ color: s.color }}>{s.label}: <b>{(s.values[hover] as number).toFixed(2)}</b> {yUnit}</p>
           ))}
         </div>
       )}
-      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-gray-400 mt-1">
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-ink-muted mt-1">
         {series.map((s) => (
           <span key={s.id}><i className="inline-block w-3 h-0.5 align-middle mr-1" style={{ background: s.color, opacity: s.opacity ?? 1 }} />{s.label}</span>
         ))}
@@ -112,15 +112,15 @@ export function DivergingBars({ rows, unit = "" }: {
       {rows.map((r) => (
         <li key={r.key} title={r.title} className={r.muted ? "opacity-45" : ""}>
           <div className="flex justify-between text-[11px] gap-2">
-            <span className="text-gray-200 truncate">{r.label}</span>
-            <span className="text-gray-400 shrink-0">{r.right}</span>
+            <span className="text-ink-soft truncate">{r.label}</span>
+            <span className="text-ink-muted shrink-0">{r.right}</span>
           </div>
-          <div className="relative h-2.5 bg-slate-800 rounded">
+          <div className="relative h-2.5 bg-surface/90 rounded">
             <div className="absolute inset-y-0 left-1/2 w-px bg-slate-500" />
-            <div className={`absolute inset-y-0 rounded ${r.value >= 0 ? "bg-red-400/80 left-1/2" : "bg-cyan-400/80 right-1/2"}`}
+            <div className={`absolute inset-y-0 rounded ${r.value >= 0 ? "bg-red-400/80 left-1/2" : "bg-accent/80 right-1/2"}`}
               style={{ width: `${(Math.abs(r.value) / max) * 50}%` }} />
           </div>
-          <p className="text-[10px] text-gray-500 text-right">{r.value >= 0 ? "+" : ""}{r.value.toFixed(2)}{unit}</p>
+          <p className="text-[10px] text-ink-faint text-right">{r.value >= 0 ? "+" : ""}{r.value.toFixed(2)}{unit}</p>
         </li>
       ))}
     </ul>
@@ -142,22 +142,22 @@ export function Scatter({ points, xLabel, yLabel, height = 260, diagonal, select
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
         {[0, 25, 50, 75, 100].map((t) => (
           <g key={t}>
-            <line x1={P.l} x2={W - P.r} y1={sy((t / 100) * yMax)} y2={sy((t / 100) * yMax)} stroke="#334155" strokeWidth={0.6} strokeDasharray="2 3" />
-            <text x={P.l - 5} y={sy((t / 100) * yMax) + 3} textAnchor="end" fontSize={9} fill="#94a3b8">{Math.round((t / 100) * yMax)}</text>
-            <text x={sx((t / 100) * xMax)} y={H - P.b + 12} textAnchor="middle" fontSize={9} fill="#94a3b8">{Math.round((t / 100) * xMax)}</text>
+            <line x1={P.l} x2={W - P.r} y1={sy((t / 100) * yMax)} y2={sy((t / 100) * yMax)} stroke="#E8E1CE" strokeWidth={0.6} strokeDasharray="2 3" />
+            <text x={P.l - 5} y={sy((t / 100) * yMax) + 3} textAnchor="end" fontSize={9} fill="#6B7168">{Math.round((t / 100) * yMax)}</text>
+            <text x={sx((t / 100) * xMax)} y={H - P.b + 12} textAnchor="middle" fontSize={9} fill="#6B7168">{Math.round((t / 100) * xMax)}</text>
           </g>
         ))}
-        {diagonal && <line x1={sx(0)} y1={sy(0)} x2={sx(Math.min(xMax, yMax))} y2={sy(Math.min(xMax, yMax))} stroke="#64748b" strokeWidth={1} strokeDasharray="4 3" />}
-        {diagonal && <text x={sx(Math.min(xMax, yMax) * 0.62)} y={sy(Math.min(xMax, yMax) * 0.62) - 6} fontSize={8} fill="#64748b" transform="" >payout = loss</text>}
-        <text x={(P.l + W - P.r) / 2} y={H - 3} textAnchor="middle" fontSize={9} fill="#94a3b8">{xLabel}</text>
-        <text transform={`translate(10 ${(P.t + H - P.b) / 2}) rotate(-90)`} textAnchor="middle" fontSize={9} fill="#94a3b8">{yLabel}</text>
+        {diagonal && <line x1={sx(0)} y1={sy(0)} x2={sx(Math.min(xMax, yMax))} y2={sy(Math.min(xMax, yMax))} stroke="#6B7168" strokeWidth={1} strokeDasharray="4 3" />}
+        {diagonal && <text x={sx(Math.min(xMax, yMax) * 0.62)} y={sy(Math.min(xMax, yMax) * 0.62) - 6} fontSize={8} fill="#6B7168" transform="" >payout = loss</text>}
+        <text x={(P.l + W - P.r) / 2} y={H - 3} textAnchor="middle" fontSize={9} fill="#6B7168">{xLabel}</text>
+        <text transform={`translate(10 ${(P.t + H - P.b) / 2}) rotate(-90)`} textAnchor="middle" fontSize={9} fill="#6B7168">{yLabel}</text>
         {points.map((p) => (
           <circle key={p.id} cx={sx(p.x)} cy={sy(p.y)} r={(p.r ?? 5) + (p.id === selectedId ? 2 : 0)}
             fill={p.hollow ? "none" : p.color} fillOpacity={p.hollow ? 0 : 0.85} stroke={p.id === selectedId ? "#fff" : p.color} strokeWidth={p.hollow ? 1.8 : 1}
             className="cursor-pointer" onMouseEnter={() => setTip(p)} onMouseLeave={() => setTip(null)} onClick={() => onSelect?.(p.id)} />
         ))}
       </svg>
-      {tip && <div className="absolute top-1 left-12 text-[10px] bg-slate-900/90 border border-white/10 rounded px-2 py-1 pointer-events-none">{tip.label}</div>}
+      {tip && <div className="absolute top-1 left-12 text-[10px] bg-surface/90 border border-line rounded px-2 py-1 pointer-events-none">{tip.label}</div>}
     </div>
   );
 }

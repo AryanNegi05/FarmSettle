@@ -1,13 +1,13 @@
 /**
- * Stage 3 / 4 / 5 — Operations Map (insurer / auditor / admin)
+ * Operations Map (insurer / auditor / admin)
  *
  * Shows all in-district farms with their boundaries, sensor locations,
  * rivers, and the demo district outline.
  *
- * Stage 4 adds: simulation control sidebar, live rainfall-intensity overlay,
+ * adds: simulation control sidebar, live rainfall-intensity overlay,
  * and flood-affected-area overlay updated tick by tick.
  *
- * Stage 5 adds: sensor fault detection & trust scoring. Rainfall gauges are
+ * adds: sensor fault detection & trust scoring. Rainfall gauges are
  * recoloured by trust score, flagged sensors are highlighted, and clicking a
  * sensor opens an investigation panel with the classification, probabilities,
  * and per-tick audit history. An outlier is suspicious, not automatically
@@ -60,34 +60,31 @@ export default function OperationsMapPage() {
       : null;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden">
       {/* Page header */}
-      <div className="flex items-center justify-between px-6 py-3 bg-navy-800 border-b border-navy-700 flex-shrink-0">
+      <div className="flex items-center justify-between px-6 py-3 bg-surface border-b border-line flex-shrink-0">
         <div className="flex items-center gap-3">
-          <Link to="/insurer" className="text-sm text-brand-blue hover:underline">← Dashboard</Link>
-          <span className="text-gray-600">|</span>
-          <h1 className="text-white font-semibold text-sm">Operations Map</h1>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-green-900/50 text-green-300 border border-green-700">
-            Stages 3–6 Active
-          </span>
+          <Link to="/insurer" className="text-sm text-accent hover:underline">← Dashboard</Link>
+          <span className="text-ink-faint">|</span>
+          <h1 className="text-ink font-semibold text-sm">Operations Map</h1>
           {sim.snapshot?.flood_active && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/60 text-red-300 border border-red-700 animate-pulse">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 animate-pulse">
               🌊 Flood Event
             </span>
           )}
           {sensorTrust.trustMap && sensorTrust.trustMap.flagged.length > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-red-900/60 text-red-300 border border-red-700">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
               ⚠ {sensorTrust.trustMap.flagged.length} Sensor{sensorTrust.trustMap.flagged.length > 1 ? "s" : ""} Flagged
             </span>
           )}
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-xs text-gray-500 hidden sm:block">
+          <p className="text-xs text-ink-faint hidden sm:block">
             Vidarbha Demo District · Basemap: ESRI World Imagery
           </p>
           <button
             onClick={() => setSidebarOpen(o => !o)}
-            className="text-xs bg-navy-700 text-gray-300 hover:text-white px-3 py-1.5 rounded-lg border border-navy-600 transition"
+            className="text-xs bg-sunken text-ink-soft hover:text-ink px-3 py-1.5 rounded-xl border border-line-strong transition"
           >
             {sidebarOpen ? "Hide Sim ◀" : "Show Sim ▶"}
           </button>
@@ -113,7 +110,7 @@ export default function OperationsMapPage() {
           />
         </div>
 
-        {/* Simulation controls sidebar (includes Stage 5 sensor health) */}
+        {/* Simulation controls sidebar (includes sensor health) */}
         {sidebarOpen && (
           <SimulationControls
             sim={sim}
@@ -127,7 +124,7 @@ export default function OperationsMapPage() {
         )}
       </div>
 
-      {/* Stage 5 — sensor investigation panel */}
+      {/* sensor investigation panel */}
       {selectedSensorId && (
         <SensorInvestigationPanel
           runId={sim.run?.id ?? null}

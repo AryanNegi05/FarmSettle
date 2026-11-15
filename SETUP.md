@@ -1,6 +1,6 @@
-# ParaTrust Setup Guide
+# FarmTrust Setup Guide
 
-Complete setup instructions for the ParaTrust parametric insurance platform with Firebase.
+Complete setup instructions for the FarmTrust parametric insurance platform with Firebase.
 
 ## Prerequisites
 

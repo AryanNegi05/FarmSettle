@@ -1,5 +1,5 @@
 /**
- * Insurer Command Centre (Stage 13).
+ * Insurer Command Centre ().
  *
  * The map is the SAME land image farmers trace their farms on (public/example-farmland.jpg), so the
  * insurer sees exactly the plots farmers marked, which land is occupied, and the rain's effect on
@@ -452,13 +452,13 @@ export default function CommandCentrePage() {
   }, [setControls]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-57px)] bg-slate-950">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-slate-900/80 backdrop-blur">
+    <div className="flex flex-col h-[calc(100vh-80px)] bg-surface/90">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-line bg-surface/80 backdrop-blur">
         <div className="flex items-center gap-3 flex-wrap">
-          <Link to="/insurer" className="text-sm text-cyan-300 hover:underline">← Dashboard</Link>
-          <h1 className="text-white font-semibold text-sm">Command Centre</h1>
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-200 border border-amber-500/30">Simulated weather & sensors</span>
-          {evaluating && <span className="text-[11px] text-cyan-300 animate-pulse">recalculating…</span>}
+          <Link to="/insurer" className="text-sm text-accent hover:underline">← Dashboard</Link>
+          <h1 className="text-ink font-semibold text-sm">Command Centre</h1>
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 border border-amber-200">Simulated weather & sensors</span>
+          {evaluating && <span className="text-[11px] text-accent animate-pulse">recalculating…</span>}
         </div>
         <div className="flex items-center gap-3">
           {user?.role !== "auditor" && (
@@ -467,7 +467,7 @@ export default function CommandCentrePage() {
               {agentBusy ? "Investigating…" : "🤖 Run agent investigation"}
             </button>
           )}
-        {result && <span className="text-[11px] text-gray-500 hidden md:block">{result.farms.length} farms · {result.sensors.length} sensors · {result.elapsed_ms} ms</span>}
+        {result && <span className="text-[11px] text-ink-faint hidden md:block">{result.farms.length} farms · {result.sensors.length} sensors · {result.elapsed_ms} ms</span>}
         </div>
       </div>
 
@@ -477,29 +477,29 @@ export default function CommandCentrePage() {
 
           {/* Search + filters */}
           <div className="absolute top-3 left-3 right-[190px] z-10 max-w-[680px] space-y-1.5">
-            <div className="rounded-xl border border-white/10 bg-slate-900/80 backdrop-blur-md p-2 flex flex-wrap gap-1.5 items-center">
+            <div className="rounded-xl border border-line bg-surface/80 backdrop-blur-md p-2 flex flex-wrap gap-1.5 items-center">
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search farmer ID, name or farm ID…"
-                className="flex-1 min-w-[160px] bg-black/30 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-gray-500" />
+                className="flex-1 min-w-[160px] bg-sunken border border-line rounded-xl px-2.5 py-1.5 text-xs text-ink placeholder-gray-500" />
               {crops.length > 0 && (
-                <select value={fCrop} onChange={(e) => setFCrop(e.target.value)} className="bg-black/30 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white">
+                <select value={fCrop} onChange={(e) => setFCrop(e.target.value)} className="bg-sunken border border-line rounded-xl px-2 py-1.5 text-xs text-ink">
                   <option value="">All crops</option>{crops.map((c) => <option key={c}>{c}</option>)}
                 </select>
               )}
-              <select value={fRisk} onChange={(e) => setFRisk(e.target.value)} className="bg-black/30 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white">
+              <select value={fRisk} onChange={(e) => setFRisk(e.target.value)} className="bg-sunken border border-line rounded-xl px-2 py-1.5 text-xs text-ink">
                 <option value="">All risk</option>{Object.keys(RISK_LABEL).map((r) => <option key={r} value={r}>{RISK_LABEL[r]}</option>)}
               </select>
-              <select value={fOutcome} onChange={(e) => setFOutcome(e.target.value)} className="bg-black/30 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white">
+              <select value={fOutcome} onChange={(e) => setFOutcome(e.target.value)} className="bg-sunken border border-line rounded-xl px-2 py-1.5 text-xs text-ink">
                 <option value="">Any claim</option><option value="PAY">Pay</option><option value="ADVANCE">Advance</option><option value="HOLD">Hold</option><option value="NONE">No payout</option>
               </select>
               <input value={fMinRain} onChange={(e) => setFMinRain(e.target.value)} placeholder="Min mm/hr" type="number"
-                className="w-24 bg-black/30 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white placeholder-gray-500" />
+                className="w-24 bg-sunken border border-line rounded-xl px-2 py-1.5 text-xs text-ink placeholder-gray-500" />
             </div>
             {matches.length > 0 && (
-              <ul className="rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md overflow-hidden">
+              <ul className="rounded-xl border border-line bg-surface/90 backdrop-blur-md overflow-hidden">
                 {matches.map((f) => (
                   <li key={f.farm_id}>
-                    <button onClick={() => { setSelectedFarmId(f.farm_id); setSearch(""); }} className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-white/5">
-                      {f.name} <span className="text-gray-500">· {f.farmer_label} · {f.farm_id.slice(0, 8)}…</span>
+                    <button onClick={() => { setSelectedFarmId(f.farm_id); setSearch(""); }} className="w-full text-left px-3 py-1.5 text-xs text-ink-soft hover:bg-sunken">
+                      {f.name} <span className="text-ink-faint">· {f.farmer_label} · {f.farm_id.slice(0, 8)}…</span>
                     </button>
                   </li>
                 ))}
@@ -510,12 +510,12 @@ export default function CommandCentrePage() {
           {/* View controls */}
           <div className="absolute top-3 right-3 z-30 flex flex-col items-end gap-1.5">
             <div className="flex gap-1.5">
-              <button onClick={() => setIs3D(false)} className={`text-xs px-3 py-1.5 rounded-lg border backdrop-blur-md ${!is3D ? "bg-cyan-500 text-slate-900 border-cyan-400 font-semibold" : "bg-slate-900/80 text-gray-200 border-white/10"}`}>2D</button>
-              <button onClick={() => setIs3D(true)} className={`text-xs px-3 py-1.5 rounded-lg border backdrop-blur-md ${is3D ? "bg-cyan-500 text-slate-900 border-cyan-400 font-semibold" : "bg-slate-900/80 text-gray-200 border-white/10"}`}>3D</button>
-              <button onClick={() => setLayersOpen((o) => !o)} className="text-xs px-3 py-1.5 rounded-lg border bg-slate-900/80 text-gray-200 border-white/10 backdrop-blur-md">Layers</button>
+              <button onClick={() => setIs3D(false)} className={`text-xs px-3 py-1.5 rounded-full border backdrop-blur-md ${!is3D ? "bg-accent text-white border-accent font-semibold" : "bg-surface/80 text-ink-soft border-line"}`}>2D</button>
+              <button onClick={() => setIs3D(true)} className={`text-xs px-3 py-1.5 rounded-full border backdrop-blur-md ${is3D ? "bg-accent text-white border-accent font-semibold" : "bg-surface/80 text-ink-soft border-line"}`}>3D</button>
+              <button onClick={() => setLayersOpen((o) => !o)} className="text-xs px-3 py-1.5 rounded-xl border bg-surface/80 text-ink-soft border-line backdrop-blur-md">Layers</button>
             </div>
             {layersOpen && (
-              <div className="rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md p-3 space-y-1.5 text-xs text-gray-200">
+              <div className="rounded-xl border border-line bg-surface/90 backdrop-blur-md p-3 space-y-1.5 text-xs text-ink-soft">
                 {([["circles", "Rainfall coverage circles"], ["ripples", "Rain ripples on each plot"], ["uncertainty", "Uncertainty (halo + 3D band)"], ["sensors", "Sensors"], ["links", "Evidence links (selected farm)"]] as const).map(([k, label]) => (
                   <label key={k} className="flex items-center gap-2"><input type="checkbox" checked={layers[k]} onChange={() => setLayers((l) => ({ ...l, [k]: !l[k] }))} />{label}</label>
                 ))}
@@ -524,24 +524,24 @@ export default function CommandCentrePage() {
           </div>
 
           {/* Legend */}
-          <div className="absolute bottom-9 left-3 z-10 rounded-xl border border-white/10 bg-slate-900/80 backdrop-blur-md px-3 py-2 text-[11px] text-gray-300 space-y-1">
+          <div className="absolute bottom-9 left-3 z-10 rounded-xl border border-line bg-surface/80 backdrop-blur-md px-3 py-2 text-[11px] text-ink-soft space-y-1">
             <div className="flex gap-2 flex-wrap">
               {(["low", "moderate", "high", "extreme"] as const).map((r) => (
                 <span key={r} className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: RISK_COLOUR[r] }} />{RISK_LABEL[r]}</span>
               ))}
             </div>
-            <div className="flex gap-2 flex-wrap text-gray-400">
-              <span><i className="inline-block w-2 h-2 rounded-full bg-cyan-400 mr-1" />healthy sensor</span>
+            <div className="flex gap-2 flex-wrap text-ink-muted">
+              <span><i className="inline-block w-2 h-2 rounded-full bg-accent mr-1" />healthy sensor</span>
               <span><i className="inline-block w-2 h-2 rounded-full bg-amber-400 mr-1" />suspicious</span>
               <span><i className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1" />faulty</span>
-              <span className="text-cyan-300">◯ coverage zone</span>
+              <span className="text-accent">◯ coverage zone</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-400">
+            <div className="flex items-center gap-2 text-ink-muted">
               <span>Uncertainty halo:</span>
               <i className="inline-block h-1.5 w-16 rounded-full" style={{ background: "linear-gradient(90deg,#34d399,#fbbf24,#f87171)" }} />
               <span>thin/green = sure → thick/red = unsure</span>
             </div>
-            <p className="text-gray-500">Unmarked ground is land no farmer has registered yet.</p>
+            <p className="text-ink-faint">Unmarked ground is land no farmer has registered yet.</p>
           </div>
 
           {sensorOpen && selectedSensorId && (
@@ -550,10 +550,10 @@ export default function CommandCentrePage() {
               onSelectFarm={(id) => setSelectedFarmId(id)} />
           )}
           {agentOpen && <AgentPanel run={agentRun} running={agentBusy} error={agentError} onClose={() => setAgentOpen(false)} />}
-          {placingStorm && <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-lg bg-amber-500/90 text-slate-900 text-xs font-semibold">Click the map to place the storm centre</div>}
-          {error && <div className="absolute bottom-24 right-3 z-10 max-w-xs rounded-lg bg-red-900/80 border border-red-700 text-red-200 text-xs px-3 py-2">{error}</div>}
+          {placingStorm && <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 rounded-lg bg-amber-500/90 text-ink text-xs font-semibold">Click the map to place the storm centre</div>}
+          {error && <div className="absolute bottom-24 right-3 z-10 max-w-xs rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2">{error}</div>}
           {result && farms.length === 0 && (
-            <div className="absolute top-24 left-1/2 -translate-x-1/2 z-10 max-w-sm rounded-xl border border-white/10 bg-slate-900/85 backdrop-blur-md px-4 py-3 text-xs text-gray-300 text-center">
+            <div className="absolute top-24 left-1/2 -translate-x-1/2 z-10 max-w-sm rounded-xl border border-line bg-surface/85 backdrop-blur-md px-4 py-3 text-xs text-ink-soft text-center">
               No farms are registered on this land yet. Farmers mark theirs at <b>My Farms → Add Farm</b>; they will appear here with their rain impact.
             </div>
           )}
@@ -565,7 +565,7 @@ export default function CommandCentrePage() {
         </div>
 
         {/* Right rail: portfolio KPIs + simulation controls */}
-        <aside className="lg:w-[340px] lg:border-l border-white/10 bg-slate-900/90 overflow-y-auto p-4 space-y-4">
+        <aside className="lg:w-[340px] lg:border-l border-line bg-surface/90 overflow-y-auto p-4 space-y-4">
           {sum ? (
             <section className="grid grid-cols-2 gap-2">
               <Kpi label="Occupied land" value={`${sum.occupied_ha} ha`} sub={`${sum.occupied_pct}% of ${sum.land_area_ha} ha · ${sum.farms} farm(s)`} wide />
@@ -579,14 +579,14 @@ export default function CommandCentrePage() {
               <Kpi label="Faulty sensors" value={`${sum.flagged_sensors}`} sub={`${sum.suspicious_sensors} suspicious`} />
               <Kpi label="Flood score" value={sum.district_flood_score.toFixed(2)} />
             </section>
-          ) : <p className="text-sm text-gray-400">{error ?? "Loading the land…"}</p>}
+          ) : <p className="text-sm text-ink-muted">{error ?? "Loading the land…"}</p>}
 
           <ControlsPanel land={result?.land ?? null} controls={controls} setControls={setControls} presets={presets} activePreset={activePreset} onPreset={applyPreset}
             sensors={sensors} selectedSensor={selectedSensor} placingStorm={placingStorm} setPlacingStorm={setPlacingStorm}
             tl={tl} playing={playing} onPlay={() => { setTl((t) => t ?? 0); setPlaying(true); }} onPause={() => setPlaying(false)}
             onReset={resetAll} onScrub={(v) => { setPlaying(false); setTl(v); }} />
 
-          {result && <p className="text-[10px] text-gray-500 leading-snug">{result.notes.join(" ")}</p>}
+          {result && <p className="text-[10px] text-ink-faint leading-snug">{result.notes.join(" ")}</p>}
         </aside>
       </div>
     </div>
@@ -595,10 +595,10 @@ export default function CommandCentrePage() {
 
 function Kpi({ label, value, sub, wide, subTone }: { label: string; value: string; sub?: string; wide?: boolean; subTone?: "up" | "down" }) {
   return (
-    <div className={`rounded-xl border border-white/10 bg-black/30 p-2.5 ${wide ? "col-span-2" : ""}`}>
-      <p className="text-[10px] uppercase tracking-wider text-gray-400">{label}</p>
-      <p className="text-lg font-bold text-white leading-tight">{value}</p>
-      {sub && <p className={`text-[11px] ${subTone === "up" ? "text-red-300" : subTone === "down" ? "text-green-300" : "text-gray-500"}`}>{sub}</p>}
+    <div className={`rounded-xl border border-line bg-sunken p-2.5 ${wide ? "col-span-2" : ""}`}>
+      <p className="text-[10px] uppercase tracking-wider text-ink-muted">{label}</p>
+      <p className="text-lg font-bold text-ink leading-tight">{value}</p>
+      {sub && <p className={`text-[11px] ${subTone === "up" ? "text-red-700" : subTone === "down" ? "text-green-700" : "text-ink-faint"}`}>{sub}</p>}
     </div>
   );
 }
